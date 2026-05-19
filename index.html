@@ -1,0 +1,906 @@
+<!--
+  SafeWeb — Phishing URL Detector (Frontend)
+  ==========================================
+  HOW TO USE:
+    1. Start the Flask backend first:
+         python app.py
+       (runs on http://localhost:5000)
+    2. Open this file directly in any modern browser.
+       No build step or server needed for the frontend.
+    3. Paste a URL into the input and click SCAN URL.
+  NOTE: The browser and Flask must both be on the same
+  machine for localhost calls to succeed.
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeWeb — Real-Time Phishing URL Detector</title>
+  <meta name="description"
+    content="SafeWeb: real-time ML-powered phishing URL detection. Paste any URL to check if it is safe or malicious." />
+
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --surface: #21262d;
+      --border: #30363d;
+      --green: #238636;
+      --green2: #2ea043;
+      --green3: #3fb950;
+      --red: #da3633;
+      --red2: #f85149;
+      --blue: #388bfd;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --r: 12px;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    /* ── Background: animated CSS particles ── */
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 32px 16px 48px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Grid overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.18;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Radial glow overlay */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 55% at 50% 10%, #1f6feb18 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Floating particle dots */
+    .particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .p {
+      position: absolute;
+      border-radius: 50%;
+      background: #388bfd;
+      opacity: 0;
+      animation: float linear infinite;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 0.35;
+      }
+
+      90% {
+        opacity: 0.2;
+      }
+
+      100% {
+        transform: translateY(-10vh) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    /* ── Wrapper ── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 40px 36px 36px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+      animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(32px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .shield-wrap {
+      width: 66px;
+      height: 66px;
+      background: linear-gradient(135deg, #1f6feb33, #238636 30%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px #23863655;
+      animation: shieldPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes shieldPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 18px #23863644;
+      }
+
+      50% {
+        box-shadow: 0 0 36px #2ea04377;
+      }
+    }
+
+    .shield-wrap svg {
+      width: 34px;
+      height: 34px;
+      fill: var(--green3);
+      filter: drop-shadow(0 0 6px #3fb95080);
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    /* ── Input group ── */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #urlInput {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    #urlInput::placeholder {
+      color: var(--muted);
+    }
+
+    #urlInput:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.18);
+    }
+
+    /* Scan-line loading animation on input */
+    #urlInput.scanning {
+      border-color: var(--blue);
+      animation: scanPulse 0.9s ease-in-out infinite;
+    }
+
+    @keyframes scanPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.12), 0 0 12px rgba(56, 139, 253, 0.08);
+      }
+
+      50% {
+        box-shadow: 0 0 0 4px rgba(56, 139, 253, 0.35), 0 0 22px rgba(56, 139, 253, 0.22);
+      }
+    }
+
+    #scanBtn {
+      width: 100%;
+      padding: 14px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+
+    #scanBtn:hover:not(:disabled) {
+      background: var(--green2);
+      box-shadow: 0 0 20px #23863666;
+      transform: translateY(-1px);
+    }
+
+    #scanBtn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    #scanBtn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 26px 0;
+    }
+
+    /* ── Result section ── */
+    #resultSection {
+      display: none;
+    }
+
+    #resultSection.visible {
+      display: block;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .result-card {
+      border-radius: 10px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid transparent;
+    }
+
+    .result-card.safe {
+      background: #0d2b16;
+      border-color: var(--green);
+      box-shadow: 0 0 28px rgba(35, 134, 54, 0.25);
+    }
+
+    .result-card.phishing {
+      background: #2d0f0f;
+      border-color: var(--red);
+      box-shadow: 0 0 28px rgba(218, 54, 51, 0.28);
+    }
+
+    .result-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .result-card.safe .result-icon {
+      background: #17492a;
+      color: var(--green3);
+    }
+
+    .result-card.phishing .result-icon {
+      background: #5c1a19;
+      color: var(--red2);
+    }
+
+    .result-label {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .result-card.safe .result-label {
+      color: var(--green3);
+    }
+
+    .result-card.phishing .result-label {
+      color: var(--red2);
+    }
+
+    .result-url {
+      font-size: 0.82rem;
+      color: var(--muted);
+      word-break: break-all;
+      text-align: center;
+    }
+
+    /* ── Confidence bar ── */
+    .confidence-wrap {
+      margin-top: 20px;
+    }
+
+    .confidence-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .confidence-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .confidence-pct {
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 8px;
+      background: var(--surface);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      width: 0%;
+      /* transition applied via JS for 1-second animation from 0 → value */
+    }
+
+    .bar-fill.safe {
+      background: linear-gradient(90deg, var(--green), var(--green3));
+    }
+
+    .bar-fill.phishing {
+      background: linear-gradient(90deg, var(--red), var(--red2));
+    }
+
+    /* ── Error messages ── */
+    .error-msg {
+      display: none;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      margin-top: 16px;
+      text-align: center;
+      animation: fadeUp 0.3s ease;
+    }
+
+    /* Network / server-down → red */
+    .error-msg.network {
+      background: #2d0f0f;
+      border: 1px solid var(--red);
+      color: var(--red2);
+    }
+
+    /* API-level error (bad input, 4xx) → yellow warning */
+    .error-msg.warning {
+      background: #2b2200;
+      border: 1px solid #d29922;
+      color: #e3b341;
+    }
+
+    .error-msg.visible {
+      display: block;
+    }
+
+    /* ── Reset button ── */
+    #resetBtn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    #resetBtn:hover {
+      border-color: var(--muted);
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    /* ── Recent history card ── */
+    #historyCard {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.5s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .history-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-title::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 8px var(--blue);
+    }
+
+    #historyList {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      animation: fadeUp 0.3s ease both;
+      font-size: 0.82rem;
+    }
+
+    .history-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .history-dot.safe {
+      background: var(--green3);
+      box-shadow: 0 0 6px var(--green3);
+    }
+
+    .history-dot.phishing {
+      background: var(--red2);
+      box-shadow: 0 0 6px var(--red2);
+    }
+
+    .history-url {
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .history-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+
+    .history-badge.safe {
+      background: #17492a;
+      color: var(--green3);
+    }
+
+    .history-badge.phishing {
+      background: #5c1a19;
+      color: var(--red2);
+    }
+
+    .history-empty {
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    /* ── Footer ── */
+    footer {
+      font-size: 0.75rem;
+      color: #484f58;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      body {
+        padding: 20px 12px 40px;
+      }
+
+      .card {
+        padding: 28px 18px 24px;
+      }
+
+      #historyCard {
+        padding: 16px 18px;
+      }
+
+      h1 {
+        font-size: 1.55rem;
+      }
+
+      .result-label {
+        font-size: 1.3rem;
+      }
+
+      .result-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+      }
+
+      #scanBtn {
+        font-size: 0.88rem;
+        padding: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- CSS particle dots -->
+  <div class="particles" aria-hidden="true" id="particles"></div>
+
+  <div class="wrapper">
+
+    <!-- ── Main card ── -->
+    <div class="card" role="main">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="shield-wrap" aria-hidden="true">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5v6c0 5.25 3.75 10.15 9 11.25C17.25 21.15 21 16.25 21 11V5L12 1z" />
+          </svg>
+        </div>
+        <h1>SafeWeb</h1>
+        <p class="subtitle">Real-Time Phishing URL Detector</p>
+      </div>
+
+      <!-- Input -->
+      <div class="input-group">
+        <input type="url" id="urlInput" placeholder="Paste a URL to scan… e.g. https://example.com" autocomplete="off"
+          spellcheck="false" aria-label="URL to scan" />
+        <button id="scanBtn" onclick="runScan()" aria-live="polite">
+          <div class="spinner" id="spinner" aria-hidden="true"></div>
+          <span id="btnText">SCAN URL</span>
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div class="error-msg" id="errorMsg" role="alert" aria-live="assertive"></div>
+
+      <!-- Result -->
+      <div id="resultSection" aria-live="polite">
+        <div class="divider" aria-hidden="true"></div>
+        <div class="result-card" id="resultCard">
+          <div class="result-icon" id="resultIcon"></div>
+          <div class="result-label" id="resultLabel"></div>
+          <div class="result-url" id="resultUrl"></div>
+        </div>
+
+        <div class="confidence-wrap">
+          <div class="confidence-header">
+            <span class="confidence-label">Confidence</span>
+            <span class="confidence-pct" id="confPct"></span>
+          </div>
+          <div class="bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progressBar">
+            <div class="bar-fill" id="barFill"></div>
+          </div>
+        </div>
+
+        <button id="resetBtn" onclick="resetView()">↩ Scan Another URL</button>
+      </div>
+
+    </div>
+
+    <!-- ── Recent history card ── -->
+    <div id="historyCard">
+      <div class="history-title">Recently Scanned</div>
+      <ul id="historyList">
+        <li class="history-empty">No URLs scanned yet this session.</li>
+      </ul>
+    </div>
+
+    <footer>SafeWeb &middot; ML-powered URL analysis &middot; Results are indicative only</footer>
+
+  </div><!-- /wrapper -->
+
+  <script>
+    const API_URL = "/predict";   // relative — works because Flask serves this page too
+
+    /* ── DOM refs ── */
+    const urlInput = document.getElementById("urlInput");
+    const scanBtn = document.getElementById("scanBtn");
+    const btnText = document.getElementById("btnText");
+    const spinner = document.getElementById("spinner");
+    const errorMsg = document.getElementById("errorMsg");
+    const resultSection = document.getElementById("resultSection");
+    const resultCard = document.getElementById("resultCard");
+    const resultIcon = document.getElementById("resultIcon");
+    const resultLabel = document.getElementById("resultLabel");
+    const resultUrl = document.getElementById("resultUrl");
+    const confPct = document.getElementById("confPct");
+    const barFill = document.getElementById("barFill");
+    const progressBar = document.getElementById("progressBar");
+    const historyList = document.getElementById("historyList");
+
+    /* ── Session history (max 5) ── */
+    const history = [];
+
+    /* ── Generate CSS particles ── */
+    (function spawnParticles() {
+      const container = document.getElementById("particles");
+      const count = 22;
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement("div");
+        p.className = "p";
+        const size = Math.random() * 3 + 1.5;
+        const left = Math.random() * 100;
+        const delay = Math.random() * 18;
+        const dur = Math.random() * 14 + 10;
+        const colors = ["#388bfd", "#3fb950", "#a371f7", "#58a6ff"];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        p.style.cssText = `
+          width:${size}px; height:${size}px;
+          left:${left}%; bottom:0;
+          background:${color};
+          animation-duration:${dur}s;
+          animation-delay:${delay}s;
+        `;
+        container.appendChild(p);
+      }
+    })();
+
+    /* ── Enter key ── */
+    urlInput.addEventListener("keydown", e => { if (e.key === "Enter") runScan(); });
+
+    /* ── Loading state ── */
+    function setLoading(loading) {
+      scanBtn.disabled = loading;
+      spinner.style.display = loading ? "block" : "none";
+      btnText.textContent = loading ? "ANALYSING…" : "SCAN URL";
+      if (loading) {
+        urlInput.classList.add("scanning");
+      } else {
+        urlInput.classList.remove("scanning");
+      }
+    }
+
+    /* type: 'network' (red) | 'warning' (yellow) */
+    function showError(msg, type = "network") {
+      errorMsg.textContent = msg;
+      errorMsg.className = "error-msg " + type + " visible";
+    }
+    function hideError() {
+      errorMsg.className = "error-msg";
+    }
+
+    /* ── Reset ── */
+    function resetView() {
+      resultSection.classList.remove("visible");
+      resultSection.style.display = "none";
+      hideError();
+      urlInput.value = "";
+      barFill.style.transition = "none";
+      barFill.style.width = "0%";
+      urlInput.focus();
+    }
+
+    /* ── History ── */
+    function addToHistory(url, prediction, confidence) {
+      const isPhishing = prediction === "Phishing";
+      history.unshift({ url, isPhishing, confidence });
+      if (history.length > 5) history.pop();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = "";
+      if (history.length === 0) {
+        historyList.innerHTML = '<li class="history-empty">No URLs scanned yet this session.</li>';
+        return;
+      }
+      history.forEach(item => {
+        const cls = item.isPhishing ? "phishing" : "safe";
+        const li = document.createElement("li");
+        li.className = "history-item";
+        li.innerHTML = `
+          <span class="history-dot ${cls}"></span>
+          <span class="history-url" title="${item.url}">${item.url}</span>
+          <span class="history-badge ${cls}">${item.isPhishing ? "PHISHING" : "SAFE"}</span>
+        `;
+        historyList.appendChild(li);
+      });
+    }
+
+    /* ── Main scan ── */
+    async function runScan() {
+      const url = urlInput.value.trim();
+      if (!url) {
+        urlInput.style.borderColor = "#da3633";
+        setTimeout(() => { urlInput.style.borderColor = ""; }, 1400);
+        urlInput.focus();
+        return;
+      }
+
+      hideError();
+      resultSection.classList.remove("visible");
+      resultSection.style.display = "none";
+      setLoading(true);
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),   // key must be "url" — matches Flask /predict
+        });
+
+        if (!res.ok) {
+          // API returned a structured error (4xx / 5xx) — show as yellow warning
+          const err = await res.json().catch(() => ({}));
+          showError("ℹ️ " + (err.error || `Server responded with status ${res.status}`), "warning");
+          return;
+        }
+
+        const data = await res.json();
+        // Keys read: data.prediction ("Safe"/"Phishing") and data.confidence (number)
+        renderResult(data);
+        addToHistory(data.url, data.prediction, data.confidence);
+
+      } catch (err) {
+        if (err instanceof TypeError) {
+          // Network failure — Flask not running
+          showError("🚫 Could not connect to analysis server. Make sure the backend is running on port 5000.", "network");
+        } else {
+          showError("⚠️ " + (err.message || "An unexpected error occurred."), "warning");
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    /* ── Render result ── */
+    function renderResult(data) {
+      const isPhishing = data.prediction === "Phishing";
+      const confidence = Math.min(100, Math.max(0, parseFloat(data.confidence)));
+      const cls = isPhishing ? "phishing" : "safe";
+
+      resultCard.className = "result-card " + cls;
+      resultIcon.textContent = isPhishing ? "✕" : "✓";
+      resultIcon.style.color = "";
+      resultLabel.textContent = isPhishing ? "PHISHING DETECTED" : "SAFE";
+      resultUrl.textContent = data.url;
+
+      confPct.textContent = confidence.toFixed(1) + "%";
+      progressBar.setAttribute("aria-valuenow", confidence.toFixed(1));
+      barFill.className = "bar-fill " + cls;
+
+      /* Animate confidence bar from 0 → value over 1 second */
+      barFill.style.transition = "none";
+      barFill.style.width = "0%";
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          barFill.style.transition = "width 1s cubic-bezier(0.22, 1, 0.36, 1)";
+          barFill.style.width = confidence + "%";
+        });
+      });
+
+      /* Fade-in result card (0.4s via CSS class) */
+      resultSection.style.display = "block";
+      void resultSection.offsetWidth; // force reflow
+      resultSection.classList.add("visible");
+    }
+  </script>
+
+</body>
+
+</html>
