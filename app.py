@@ -1,72 +1,122 @@
 # =============================================================================
-# SafeWeb — Phishing URL Detection API
+# SafeWeb — Enhanced Phishing URL Detection API
 # =============================================================================
 # HOW TO RUN:
 #   1. Install dependencies:
 #        pip install flask flask-cors joblib scikit-learn numpy
-#   2. Place these files in the same directory as app.py:
-#        - phishing_production_model.pkl
-#        - url_production_scaler.pkl
-#   3. Start the server:
+#        pip install python-whois      (optional — for WHOIS domain age)
+#   2. Place in the same directory:
+#        phishing_production_model.pkl
+#        url_production_scaler.pkl
+#   3. (Optional) Run train_all_models.py first for Model Lab feature
+#   4. Start the server:
 #        python app.py
-#   4. The API will be available at http://localhost:5000
-#      POST /predict  →  { "url": "https://example.com" }
 # =============================================================================
 
 import os
 import re
 import sys
+import json
+import time
 import warnings
+import datetime
 import joblib
 import numpy as np
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-# Directory where app.py lives — used to locate index.html and .pkl files
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# ─── Optional WHOIS support ──────────────────────────────────────────────────
+try:
+    import whois
+    HAS_WHOIS = True
+except ImportError:
+    HAS_WHOIS = False
 
-# Suppress sklearn version-mismatch warnings (model trained on 1.7.2, running on 1.8.x)
 warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
-# ---------------------------------------------------------------------------
-# App initialisation
-# ---------------------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ─── App setup ───────────────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app)
 
-# ---------------------------------------------------------------------------
-# Root route — serves index.html so visiting http://localhost:5000 opens the app
-# ---------------------------------------------------------------------------
-@app.route("/", methods=["GET"])
-def index():
-    return send_from_directory(BASE_DIR, "index.html")
+# ─── Session statistics (in-memory, resets on restart) ───────────────────────
+stats = {
+    "total":    0,
+    "phishing": 0,
+    "safe":     0,
+    "history":  [],   # last 100 scans with timestamps
+}
 
-# ---------------------------------------------------------------------------
-# Load model artefacts once at startup
-# ---------------------------------------------------------------------------
+# ─── Feature metadata ────────────────────────────────────────────────────────
+FEATURE_NAMES = [
+    "URL Length",
+    "Domain Length",
+    "Num Dots",
+    "Num Hyphens",
+    "Num @ Symbols",
+    "Num Slashes",
+    "Num Digits",
+    "Has HTTPS",
+    "Has IP Address",
+]
+
+# Threshold rules: (threshold, operator, label)
+#   operator: ">" | "<" | "==" | "!="
+FEATURE_THRESHOLDS = [
+    (75,  ">",  "Long URL"),
+    (30,  ">",  "Long Domain"),
+    (3,   ">",  "Many Dots"),
+    (2,   ">",  "Many Hyphens"),
+    (0,   ">",  "Contains @"),
+    (6,   ">",  "Deep Path"),
+    (8,   ">",  "Many Digits"),
+    (1,   "!=", "No HTTPS"),
+    (1,   "==", "IP in URL"),
+]
+
+# ─── Load production model ───────────────────────────────────────────────────
 MODEL_PATH  = os.path.join(BASE_DIR, "phishing_production_model.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "url_production_scaler.pkl")
 
-# ---------------------------------------------------------------------------
-# Startup checks — fail fast with a clear message if files are missing
-# ---------------------------------------------------------------------------
-for _path, _name in [(MODEL_PATH, "phishing_production_model.pkl"),
+for _path, _name in [(MODEL_PATH,  "phishing_production_model.pkl"),
                      (SCALER_PATH, "url_production_scaler.pkl")]:
     if not os.path.exists(_path):
         print(f"\n[ERROR] Required file not found: {_name}")
-        print(f"        Expected at: {_path}")
-        print("        Place both .pkl files in the same folder as app.py and try again.\n")
+        print(f"        Expected at: {_path}\n")
         sys.exit(1)
 
 model  = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
-print("[OK] Model and scaler loaded successfully.")
+print("[OK] Production model and scaler loaded.")
 
-# ---------------------------------------------------------------------------
-# Feature extraction helpers
-# ---------------------------------------------------------------------------
-# Regex to detect an IPv4 address in the hostname
+# ─── Load all trained models (optional — created by train_all_models.py) ─────
+ALL_MODELS_SCALER_PATH = os.path.join(BASE_DIR, "all_models_scaler.pkl")
+all_models_scaler = None
+if os.path.exists(ALL_MODELS_SCALER_PATH):
+    all_models_scaler = joblib.load(ALL_MODELS_SCALER_PATH)
+    print("[OK] Multi-model scaler loaded.")
+
+# Model filenames created by train_all_models.py
+TRAINED_MODEL_FILES = {
+    "K-Nearest Neighbor":  "model_knn.pkl",
+    "Decision Tree":       "model_dt.pkl",
+    "Logistic Regression": "model_lr.pkl",
+    "Naive Bayes":         "model_nb.pkl",
+    "Random Forest":       "model_rf.pkl",
+    "XGBoost":             "model_xgb.pkl",     # may not exist
+    "Gradient Boosting":   "model_gb.pkl",      # fallback
+}
+
+loaded_models = {}
+for name, fname in TRAINED_MODEL_FILES.items():
+    fpath = os.path.join(BASE_DIR, fname)
+    if os.path.exists(fpath):
+        loaded_models[name] = joblib.load(fpath)
+        print(f"[OK] {name} model loaded.")
+
+# ─── Feature extraction ───────────────────────────────────────────────────────
 _IP_PATTERN = re.compile(
     r"^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}"
     r"(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$"
@@ -75,97 +125,346 @@ _IP_PATTERN = re.compile(
 
 def extract_features(url: str) -> list:
     """
-    Extract exactly 9 features from *url* in this order:
-      1. url_length      – total character count of the URL
-      2. domain_length   – character count of the netloc (host + port)
-      3. num_dots        – count of '.' in the full URL
-      4. num_hyphens     – count of '-' in the full URL
-      5. num_at_symbols  – count of '@' in the full URL
-      6. num_slashes     – count of '/' in the full URL
-      7. num_digits      – count of digit characters in the full URL
-      8. has_https       – 1 if scheme is 'https', else 0
-      9. has_ip          – 1 if the hostname looks like an IPv4 address, else 0
+    Extract 9 features from a URL:
+      1. url_length       — total character count
+      2. domain_length    — netloc character count
+      3. num_dots         — count of '.' in URL
+      4. num_hyphens      — count of '-' in URL
+      5. num_at_symbols   — count of '@' in URL
+      6. num_slashes      — count of '/' in URL
+      7. num_digits       — count of digit characters
+      8. has_https        — 1 if HTTPS, else 0
+      9. has_ip           — 1 if hostname is an IPv4 address
     """
     parsed = urlparse(url)
-
-    url_length    = len(url)
-    domain_length = len(parsed.netloc)
-    num_dots      = url.count(".")
-    num_hyphens   = url.count("-")
-    num_at_symbols= url.count("@")
-    num_slashes   = url.count("/")
-    num_digits    = sum(c.isdigit() for c in url)
-    has_https     = 1 if parsed.scheme.lower() == "https" else 0
-    # Strip port before IP check
-    hostname      = parsed.hostname or ""
-    has_ip        = 1 if _IP_PATTERN.match(hostname) else 0
-
+    hostname = parsed.hostname or ""
     return [
-        url_length,
-        domain_length,
-        num_dots,
-        num_hyphens,
-        num_at_symbols,
-        num_slashes,
-        num_digits,
-        has_https,
-        has_ip,
+        len(url),
+        len(parsed.netloc),
+        url.count("."),
+        url.count("-"),
+        url.count("@"),
+        url.count("/"),
+        sum(c.isdigit() for c in url),
+        1 if parsed.scheme.lower() == "https" else 0,
+        1 if _IP_PATTERN.match(hostname) else 0,
     ]
 
 
-# ---------------------------------------------------------------------------
-# /predict endpoint
-# ---------------------------------------------------------------------------
+def compute_risk_score(features: list) -> dict:
+    """
+    Rule-based risk score (0–100) with per-rule breakdown.
+    Separate from the ML model — gives explainability.
+    """
+    rules = []
+    score = 0
+
+    val = features[0]   # url_length
+    if val > 100:
+        pts = 15; score += pts; rules.append({"rule": f"URL length {val} chars (> 100)", "points": pts, "severity": "high"})
+    elif val > 75:
+        pts = 8; score += pts; rules.append({"rule": f"URL length {val} chars (> 75)", "points": pts, "severity": "medium"})
+
+    val = features[7]   # has_https
+    if val == 0:
+        pts = 25; score += pts; rules.append({"rule": "No HTTPS encryption detected", "points": pts, "severity": "critical"})
+
+    val = features[4]   # num_at
+    if val > 0:
+        pts = 20; score += pts; rules.append({"rule": f"Contains @ symbol (credential trick)", "points": pts, "severity": "critical"})
+
+    val = features[8]   # has_ip
+    if val == 1:
+        pts = 20; score += pts; rules.append({"rule": "IP address used instead of domain", "points": pts, "severity": "critical"})
+
+    val = features[2]   # num_dots
+    if val > 5:
+        pts = 10; score += pts; rules.append({"rule": f"Excessive dots in URL ({val})", "points": pts, "severity": "high"})
+    elif val > 3:
+        pts = 5; score += pts; rules.append({"rule": f"Multiple sub-domains ({val} dots)", "points": pts, "severity": "medium"})
+
+    val = features[3]   # num_hyphens
+    if val > 3:
+        pts = 10; score += pts; rules.append({"rule": f"Many hyphens ({val}) — common in spoof domains", "points": pts, "severity": "high"})
+
+    val = features[6]   # num_digits
+    if val > 10:
+        pts = 5; score += pts; rules.append({"rule": f"High digit count ({val}) — looks auto-generated", "points": pts, "severity": "low"})
+
+    val = features[1]   # domain_length
+    if val > 40:
+        pts = 10; score += pts; rules.append({"rule": f"Domain length {val} chars (very long)", "points": pts, "severity": "high"})
+
+    score = min(score, 100)
+
+    if score >= 70:
+        level = "CRITICAL"
+    elif score >= 45:
+        level = "HIGH"
+    elif score >= 20:
+        level = "MEDIUM"
+    else:
+        level = "LOW"
+
+    return {"score": score, "level": level, "rules": rules}
+
+
+def record_stat(url: str, prediction: str, confidence: float):
+    """Update in-memory session statistics."""
+    stats["total"] += 1
+    if prediction == "Phishing":
+        stats["phishing"] += 1
+    else:
+        stats["safe"] += 1
+    stats["history"].append({
+        "url":        url,
+        "prediction": prediction,
+        "confidence": confidence,
+        "timestamp":  datetime.datetime.now().strftime("%H:%M:%S"),
+    })
+    if len(stats["history"]) > 100:
+        stats["history"].pop(0)
+
+
+# ─── Routes ───────────────────────────────────────────────────────────────────
+
+@app.route("/", methods=["GET"])
+def index():
+    return send_from_directory(BASE_DIR, "index.html")
+
+
+# ── 1. Single URL prediction ──────────────────────────────────────────────────
 @app.route("/predict", methods=["POST"])
 def predict():
     """
-    Accepts: {"url": "https://example.com"}
-    Returns: {"url": "...", "prediction": "Phishing" | "Legitimate", "confidence": 94.2}
+    POST {"url": "https://example.com"}
+    Returns prediction, confidence, raw features, and risk score.
     """
     data = request.get_json(force=True, silent=True)
-
-    # --- Input validation ---
-    if not data or "url" not in data or not str(data["url"]).strip():
+    if not data or not str(data.get("url", "")).strip():
         return jsonify({"error": "No URL provided"}), 400
 
     url = str(data["url"]).strip()
 
-    # --- Feature extraction ---
     try:
         features = extract_features(url)
-    except Exception as exc:
-        return jsonify({"error": f"Feature extraction failed: {exc}"}), 422
+    except Exception as e:
+        return jsonify({"error": f"Feature extraction failed: {e}"}), 422
 
-    # --- Scale & predict ---
-    features_array = np.array(features).reshape(1, -1)
-    features_scaled = scaler.transform(features_array)
+    arr     = np.array(features).reshape(1, -1)
+    scaled  = scaler.transform(arr)
+    pred    = model.predict(scaled)[0]
+    probas  = model.predict_proba(scaled)[0]
 
-    prediction_label = model.predict(features_scaled)[0]
-    probabilities    = model.predict_proba(features_scaled)[0]
-
-    # -----------------------------------------------------------------------
-    # Label convention (confirmed from training data):
-    #   0 → Phishing    (proba index 0)
-    #   1 → Legitimate  (proba index 1)
-    # -----------------------------------------------------------------------
-    if int(prediction_label) == 0:
-        label      = "Phishing"
-        confidence = float(probabilities[0]) * 100   # confidence in being phishing
+    if int(pred) == 0:
+        label = "Phishing"
+        conf  = float(probas[0]) * 100
     else:
-        label      = "Legitimate"
-        confidence = float(probabilities[1]) * 100   # confidence in being legitimate
+        label = "Legitimate"
+        conf  = float(probas[1]) * 100
 
-    return jsonify(
-        {
-            "url":        url,
-            "prediction": label,
-            "confidence": round(confidence, 2),
-        }
-    )
+    risk = compute_risk_score(features)
+    record_stat(url, label, round(conf, 2))
+
+    return jsonify({
+        "url":           url,
+        "prediction":    label,
+        "confidence":    round(conf, 2),
+        "features":      features,
+        "feature_names": FEATURE_NAMES,
+        "risk":          risk,
+    })
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+# ── 2. Batch scan ─────────────────────────────────────────────────────────────
+@app.route("/batch", methods=["POST"])
+def batch_predict():
+    """
+    POST {"urls": ["https://a.com", "http://b.com", ...]}
+    Returns a list of predictions (same format as /predict).
+    """
+    data = request.get_json(force=True, silent=True)
+    urls = data.get("urls", []) if data else []
+
+    if not urls or not isinstance(urls, list):
+        return jsonify({"error": "Provide a list under 'urls'"}), 400
+
+    results = []
+    for url in urls[:50]:           # hard cap at 50
+        url = str(url).strip()
+        if not url:
+            continue
+        try:
+            features = extract_features(url)
+            arr    = np.array(features).reshape(1, -1)
+            scaled = scaler.transform(arr)
+            pred   = model.predict(scaled)[0]
+            probas = model.predict_proba(scaled)[0]
+
+            if int(pred) == 0:
+                label = "Phishing"; conf = float(probas[0]) * 100
+            else:
+                label = "Legitimate"; conf = float(probas[1]) * 100
+
+            risk = compute_risk_score(features)
+            record_stat(url, label, round(conf, 2))
+
+            results.append({
+                "url":        url,
+                "prediction": label,
+                "confidence": round(conf, 2),
+                "risk_score": risk["score"],
+                "risk_level": risk["level"],
+            })
+        except Exception as e:
+            results.append({"url": url, "error": str(e)})
+
+    phishing_count = sum(1 for r in results if r.get("prediction") == "Phishing")
+    return jsonify({
+        "results":        results,
+        "total":          len(results),
+        "phishing_found": phishing_count,
+        "safe_found":     len(results) - phishing_count,
+    })
+
+
+# ── 3. Compare all trained models ─────────────────────────────────────────────
+@app.route("/compare", methods=["POST"])
+def compare_models():
+    """
+    POST {"url": "https://example.com"}
+    Returns prediction from every loaded model side-by-side.
+    """
+    data = request.get_json(force=True, silent=True)
+    if not data or not str(data.get("url", "")).strip():
+        return jsonify({"error": "No URL provided"}), 400
+
+    url      = str(data["url"]).strip()
+    features = extract_features(url)
+    arr      = np.array(features).reshape(1, -1)
+
+    comparison = {}
+
+    # Production model (uses its own scaler)
+    scaled    = scaler.transform(arr)
+    prod_pred = model.predict(scaled)[0]
+    prod_prob = model.predict_proba(scaled)[0]
+    prod_lbl  = "Phishing" if int(prod_pred) == 0 else "Legitimate"
+    prod_conf = float(prod_prob[0] if int(prod_pred) == 0 else prod_prob[1]) * 100
+    comparison["Production Model"] = {
+        "prediction": prod_lbl,
+        "confidence": round(prod_conf, 2),
+    }
+
+    # All other models (use all_models_scaler if available)
+    if loaded_models:
+        if all_models_scaler:
+            arr_s = all_models_scaler.transform(arr)
+        else:
+            arr_s = scaled    # fallback to production scaler
+
+        for name, clf in loaded_models.items():
+            try:
+                p     = clf.predict(arr_s)[0]
+                proba = clf.predict_proba(arr_s)[0]
+                lbl   = "Phishing" if int(p) == 0 else "Legitimate"
+                conf  = float(proba[0] if int(p) == 0 else proba[1]) * 100
+                comparison[name] = {"prediction": lbl, "confidence": round(conf, 2)}
+            except Exception as e:
+                comparison[name] = {"error": str(e)}
+
+    # Majority vote
+    votes_phishing = sum(1 for v in comparison.values() if v.get("prediction") == "Phishing")
+    votes_total    = len([v for v in comparison.values() if "prediction" in v])
+    majority       = "Phishing" if votes_phishing > votes_total / 2 else "Legitimate"
+
+    return jsonify({
+        "url":         url,
+        "features":    features,
+        "results":     comparison,
+        "majority":    majority,
+        "votes":       {"phishing": votes_phishing, "legitimate": votes_total - votes_phishing},
+        "models_ready": bool(loaded_models),
+    })
+
+
+# ── 4. Session statistics ─────────────────────────────────────────────────────
+@app.route("/stats", methods=["GET"])
+def get_stats():
+    """Returns session scan counts."""
+    pct = round(stats["phishing"] / stats["total"] * 100, 1) if stats["total"] > 0 else 0
+    return jsonify({
+        "total":          stats["total"],
+        "phishing":       stats["phishing"],
+        "safe":           stats["safe"],
+        "phishing_pct":   pct,
+        "recent_history": stats["history"][-20:],
+    })
+
+
+# ── 5. Visualization data (from train_all_models.py output) ──────────────────
+@app.route("/viz-data", methods=["GET"])
+def viz_data():
+    """Serves pre-computed model metrics from train_all_models.py."""
+    metrics_path = os.path.join(BASE_DIR, "model_metrics.json")
+    if not os.path.exists(metrics_path):
+        return jsonify({"available": False, "message": "Run train_all_models.py first."})
+    with open(metrics_path) as f:
+        data = json.load(f)
+    data["available"] = True
+    return jsonify(data)
+
+
+# ── 6. WHOIS domain age lookup (optional) ────────────────────────────────────
+@app.route("/whois", methods=["POST"])
+def whois_lookup():
+    """
+    POST {"url": "https://example.com"}
+    Returns domain registration age and registrar info.
+    Requires: pip install python-whois
+    """
+    if not HAS_WHOIS:
+        return jsonify({
+            "available": False,
+            "message":   "Install python-whois: pip install python-whois",
+        })
+
+    data = request.get_json(force=True, silent=True)
+    if not data or not str(data.get("url", "")).strip():
+        return jsonify({"error": "No URL provided"}), 400
+
+    url    = str(data["url"]).strip()
+    domain = urlparse(url).netloc or url
+
+    try:
+        w          = whois.whois(domain)
+        created    = w.creation_date
+        if isinstance(created, list):
+            created = created[0]
+
+        age_days   = (datetime.datetime.now() - created).days if created else None
+        suspicious = age_days is not None and age_days < 30
+
+        return jsonify({
+            "available":   True,
+            "domain":      domain,
+            "created":     str(created) if created else "Unknown",
+            "age_days":    age_days,
+            "registrar":   w.registrar or "Unknown",
+            "country":     w.country or "Unknown",
+            "suspicious":  suspicious,
+            "note":        "Domain < 30 days old — high phishing risk!" if suspicious else "",
+        })
+    except Exception as e:
+        return jsonify({"available": True, "error": str(e), "domain": domain})
+
+
+# ─── Entry point ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    print("\n[SafeWeb] Server starting on http://localhost:5000")
+    if not loaded_models:
+        print("[INFO]  Model Lab disabled — run train_all_models.py to enable it.")
+    if not HAS_WHOIS:
+        print("[INFO]  WHOIS lookup disabled — run: pip install python-whois")
+    print()
     app.run(host="0.0.0.0", port=5000, debug=True)
