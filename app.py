@@ -18,6 +18,7 @@ import re
 import sys
 import json
 import time
+import socket
 import warnings
 import datetime
 import joblib
@@ -209,7 +210,7 @@ def compute_risk_score(features: list) -> dict:
     return {"score": score, "level": level, "rules": rules}
 
 
-def record_stat(url: str, prediction: str, confidence: float):
+def record_stat(url: str, prediction: str, confidence: float, risk_level: str = "—"):
     """Update in-memory session statistics."""
     stats["total"] += 1
     if prediction == "Phishing":
@@ -220,6 +221,7 @@ def record_stat(url: str, prediction: str, confidence: float):
         "url":        url,
         "prediction": prediction,
         "confidence": confidence,
+        "risk":       risk_level,
         "timestamp":  datetime.datetime.now().strftime("%H:%M:%S"),
     })
     if len(stats["history"]) > 100:
@@ -264,7 +266,7 @@ def predict():
         conf  = float(probas[1]) * 100
 
     risk = compute_risk_score(features)
-    record_stat(url, label, round(conf, 2))
+    record_stat(url, label, round(conf, 2), risk["level"])
 
     return jsonify({
         "url":           url,
@@ -307,7 +309,7 @@ def batch_predict():
                 label = "Legitimate"; conf = float(probas[1]) * 100
 
             risk = compute_risk_score(features)
-            record_stat(url, label, round(conf, 2))
+            record_stat(url, label, round(conf, 2), risk["level"])
 
             results.append({
                 "url":        url,
@@ -398,6 +400,7 @@ def get_stats():
         "phishing":       stats["phishing"],
         "safe":           stats["safe"],
         "phishing_pct":   pct,
+        "history":        list(reversed(stats["history"])),
         "recent_history": stats["history"][-20:],
     })
 
@@ -412,6 +415,8 @@ def viz_data():
     with open(metrics_path) as f:
         data = json.load(f)
     data["available"] = True
+    if "production_model" not in data:
+        data["production_model"] = "Gradient Boosting"
     return jsonify(data)
 
 
@@ -460,11 +465,28 @@ def whois_lookup():
 
 
 # ─── Entry point ─────────────────────────────────────────────────────────────
+def find_free_port(start: int = 5001, attempts: int = 10) -> int:
+    """Return the first available port starting from `start`."""
+    for port in range(start, start + attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind(("0.0.0.0", port))
+                return port
+            except OSError:
+                continue
+    return start
+
+
 if __name__ == "__main__":
-    print("\n[SafeWeb] Server starting on http://localhost:5000")
+    # Port 5000 is often taken by macOS AirPlay Receiver — default to 5001
+    requested = int(os.environ.get("PORT", 5001))
+    port = find_free_port(requested) if os.environ.get("PORT") is None else requested
+    if port != requested:
+        print(f"[INFO]  Port {requested} is busy — using {port} instead.")
+    print(f"\n[SafeWeb] Server starting on http://localhost:{port}")
     if not loaded_models:
         print("[INFO]  Model Lab disabled — run train_all_models.py to enable it.")
     if not HAS_WHOIS:
         print("[INFO]  WHOIS lookup disabled — run: pip install python-whois")
     print()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=True)

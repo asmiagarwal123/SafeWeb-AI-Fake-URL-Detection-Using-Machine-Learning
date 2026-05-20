@@ -13,32 +13,32 @@
 ═══════════════════════════════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:       #060d1a;
-  --panel:    #0b1628;
-  --card:     #0f1e35;
-  --card2:    #122240;
-  --border:   #1a3a5c;
-  --border2:  #243f60;
-  --teal:     #00d4aa;
-  --teal2:    #00b894;
-  --teal-dim: #00d4aa22;
-  --red:      #ff4757;
-  --red-dim:  #ff475722;
-  --green:    #2ed573;
-  --green-dim:#2ed57322;
-  --yellow:   #ffa502;
-  --yellow-dim:#ffa50222;
-  --blue:     #3d8bff;
-  --blue-dim: #3d8bff22;
-  --purple:   #a29bfe;
-  --text:     #e2e8f0;
-  --muted:    #64748b;
-  --muted2:   #94a3b8;
+  --bg:       #070e1c;
+  --panel:    #0c1729;
+  --card:     #101f38;
+  --card2:    #142845;
+  --border:   #1e3d5f;
+  --border2:  #2a4d72;
+  --teal:     #1ec9a8;
+  --teal2:    #17a88c;
+  --teal-dim: #1ec9a818;
+  --red:      #e85563;
+  --red-dim:  #e8556318;
+  --green:    #3ecf8e;
+  --green-dim:#3ecf8e18;
+  --yellow:   #e89b3a;
+  --yellow-dim:#e89b3a18;
+  --blue:     #4d94ff;
+  --blue-dim: #4d94ff18;
+  --purple:   #9b93e8;
+  --text:     #dce4ef;
+  --muted:    #6b7f99;
+  --muted2:   #8fa3bd;
   --font-head: 'Exo 2', sans-serif;
   --font-body: 'DM Sans', sans-serif;
   --font-mono: 'DM Mono', monospace;
-  --r:        10px;
-  --sidebar:  230px;
+  --r:        9px;
+  --sidebar:  228px;
 }
 html,body{height:100%;overflow:hidden}
 body{
@@ -70,7 +70,7 @@ body::before{
 #sidebar{
   width:var(--sidebar);
   min-height:100vh;
-  background:var(--panel);
+  background:linear-gradient(180deg,var(--panel) 0%,#091220 100%);
   border-right:1px solid var(--border);
   display:flex;
   flex-direction:column;
@@ -127,27 +127,29 @@ body::before{
   flex:1;overflow-y:auto;overflow-x:hidden;
   position:relative;z-index:1;
 }
-.section{display:none;padding:28px 28px 40px;animation:fadeIn .3s ease}
+.section{display:none;padding:26px 32px 44px 26px;animation:fadeIn .28s ease}
 .section.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SHARED COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════ */
-.page-header{margin-bottom:24px}
+.page-header{margin-bottom:26px;padding-left:2px}
 .page-title{
-  font-family:var(--font-head);font-size:1.5rem;font-weight:700;
-  letter-spacing:-.5px;
+  font-family:var(--font-head);font-size:1.45rem;font-weight:700;
+  letter-spacing:-.3px;line-height:1.25;
 }
 .page-title span{color:var(--teal)}
-.page-sub{color:var(--muted);font-size:.83rem;margin-top:4px}
+.page-sub{color:var(--muted);font-size:.84rem;margin-top:6px;max-width:52ch;line-height:1.5}
 
 .card{
   background:var(--card);
   border:1px solid var(--border);
   border-radius:var(--r);
-  padding:20px;
+  padding:20px 22px;
+  transition:border-color .22s ease,box-shadow .22s ease;
 }
+.card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,.18)}
 .card-title{
   font-family:var(--font-head);font-size:.85rem;
   font-weight:600;letter-spacing:.5px;
@@ -169,9 +171,11 @@ body::before{
 /* Stat cards */
 .stat-card{
   background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:18px 20px;
-  display:flex;flex-direction:column;gap:6px;
+  border-radius:var(--r);padding:17px 19px 19px;
+  display:flex;flex-direction:column;gap:5px;
+  transition:border-color .22s ease,transform .22s ease;
 }
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px)}
 .stat-label{font-size:.75rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-family:var(--font-mono)}
 .stat-value{font-family:var(--font-head);font-size:2rem;font-weight:700}
 .stat-sub{font-size:.75rem;color:var(--muted2)}
@@ -378,7 +382,7 @@ body::before{
 #batch-summary{
   display:none;padding:14px 18px;border-radius:8px;margin-top:16px;
   background:var(--card2);border:1px solid var(--border);
-  display:none;align-items:center;gap:24px;flex-wrap:wrap;
+  align-items:center;gap:24px;flex-wrap:wrap;
 }
 .sum-item{display:flex;align-items:center;gap:8px;font-size:.88rem}
 .sum-num{font-family:var(--font-head);font-size:1.4rem;font-weight:700}
@@ -399,9 +403,20 @@ body::before{
 ═══════════════════════════════════════════════════════════════════════════ */
 .chart-card{
   background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:20px;
+  border-radius:var(--r);padding:20px 22px;
 }
-.chart-wrap{position:relative}
+.chart-wrap{
+  position:relative;
+  height:240px;
+  max-height:240px;
+  overflow:hidden;
+}
+.chart-wrap canvas{
+  display:block;
+  width:100%!important;
+  height:100%!important;
+  max-height:240px;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 5 — MODEL LAB
@@ -409,8 +424,10 @@ body::before{
 .algo-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
 .algo-card{
   background:var(--panel);border:1px solid var(--border);
-  border-radius:var(--r);padding:14px;
+  border-radius:var(--r);padding:14px 16px;
+  transition:border-color .22s ease,transform .22s ease;
 }
+.algo-card:hover{border-color:var(--border2);transform:translateY(-1px)}
 .algo-name{font-family:var(--font-head);font-size:.88rem;font-weight:600;margin-bottom:4px}
 .algo-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
 .algo-acc{
@@ -440,13 +457,26 @@ body::before{
 /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 6 — VISUALIZATIONS
 ═══════════════════════════════════════════════════════════════════════════ */
-.viz-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.viz-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px}
-.viz-title{
-  font-family:var(--font-head);font-size:.82rem;font-weight:600;
-  text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);
-  margin-bottom:16px;
+.viz-grid{
+  display:grid;
+  grid-template-columns:1.05fr .95fr;
+  gap:18px 22px;
 }
+.viz-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:18px 20px 20px;
+  transition:border-color .22s ease;
+}
+.viz-card:hover{border-color:var(--border2)}
+.viz-card:nth-child(odd){margin-top:2px}
+.viz-card .chart-wrap{height:260px;max-height:260px}
+.viz-card .chart-wrap canvas{max-height:260px}
+.viz-title{
+  font-family:var(--font-head);font-size:.8rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.4px;color:var(--muted2);
+  margin-bottom:14px;
+}
+.cm-note{font-size:.76rem;color:var(--muted);text-align:center;line-height:1.5;margin-bottom:8px}
 .no-data-msg{
   text-align:center;padding:40px 20px;color:var(--muted);font-size:.85rem;
 }
@@ -773,13 +803,13 @@ body::before{
   <div class="grid-2 mt-16">
     <div class="chart-card">
       <div class="card-title"><span class="dot"></span>Distribution</div>
-      <div class="chart-wrap" style="height:240px">
+      <div class="chart-wrap">
         <canvas id="donut-chart"></canvas>
       </div>
     </div>
     <div class="chart-card">
       <div class="card-title"><span class="dot"></span>Confidence Range Distribution</div>
-      <div class="chart-wrap" style="height:240px">
+      <div class="chart-wrap">
         <canvas id="conf-chart"></canvas>
       </div>
     </div>
@@ -869,33 +899,33 @@ body::before{
   <div class="viz-grid">
     <div class="viz-card">
       <div class="viz-title">📊 Feature: Phishing vs Legitimate (Avg Values)</div>
-      <canvas id="feature-dist-chart" height="240"></canvas>
+      <div class="chart-wrap"><canvas id="feature-dist-chart"></canvas></div>
     </div>
     <div class="viz-card">
       <div class="viz-title">🏆 Algorithm Accuracy Comparison</div>
       <div id="viz-no-data" class="no-data-msg" style="display:none">
         Run <code>python train_all_models.py</code> to see model metrics
       </div>
-      <canvas id="algo-acc-chart" height="240"></canvas>
+      <div class="chart-wrap"><canvas id="algo-acc-chart"></canvas></div>
     </div>
     <div class="viz-card">
       <div class="viz-title">🎯 Feature Importance (Decision Tree / Random Forest)</div>
       <div id="viz-no-fi" class="no-data-msg" style="display:none">
         Run <code>python train_all_models.py</code> to see feature importance
       </div>
-      <canvas id="feat-imp-chart" height="240"></canvas>
+      <div class="chart-wrap"><canvas id="feat-imp-chart"></canvas></div>
     </div>
     <div class="viz-card">
       <div class="viz-title">🔷 Metrics Radar — All Algorithms</div>
       <div id="viz-no-radar" class="no-data-msg" style="display:none">
         Run <code>python train_all_models.py</code> to see metrics radar
       </div>
-      <canvas id="radar-chart" height="240"></canvas>
+      <div class="chart-wrap"><canvas id="radar-chart"></canvas></div>
     </div>
     <div class="viz-card">
       <div class="viz-title">⬜ Confusion Matrix — Production Model</div>
-      <div id="cm-display" style="display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px">
-        <div style="color:var(--muted);font-size:.83rem">Scan URLs to build the confusion matrix data</div>
+      <div id="cm-display" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;gap:10px">
+        <div id="cm-note" class="cm-note">Test-set evaluation from trained model metrics</div>
         <div id="cm-grid" style="display:none;gap:4px">
           <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;text-align:center">
             <div></div>
@@ -909,11 +939,14 @@ body::before{
             <div class="cm-cell" id="cm-tn" style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--green)">0</div>
           </div>
         </div>
+        <div id="cm-unavailable" class="no-data-msg" style="display:none;padding:20px">
+          Run <code>python train_all_models.py</code> to load test-set confusion matrix
+        </div>
       </div>
     </div>
     <div class="viz-card">
       <div class="viz-title">📉 Session Prediction Distribution</div>
-      <canvas id="session-dist-chart" height="240"></canvas>
+      <div class="chart-wrap"><canvas id="session-dist-chart"></canvas></div>
     </div>
   </div>
 </section>
@@ -1016,14 +1049,47 @@ const API = "";   // relative — Flask serves both index.html and API
 let sessionHistory  = [];     // [{url,prediction,confidence,risk,timestamp}]
 let batchResults    = [];     // last batch scan results
 let vizData         = null;   // from /viz-data
-let chartsInitialized = {};   // track which Chart.js charts exist
-let confMatrix      = {tp:0,fp:0,fn:0,tn:0};
+let chartInstances  = {};     // Chart.js instance registry (prevents leaks / resize loops)
 let currentSection  = "dashboard";
+let modelChartsReady = false; // static viz charts built once
 
 // Chart.js global defaults
-Chart.defaults.color            = "#64748b";
-Chart.defaults.borderColor      = "#1a3a5c";
+Chart.defaults.color            = "#6b7f99";
+Chart.defaults.borderColor      = "#1e3d5f";
 Chart.defaults.font.family      = "'DM Mono', monospace";
+Chart.defaults.responsive       = true;
+Chart.defaults.maintainAspectRatio = false;
+
+// Shared chart options — fixed-height containers prevent infinite resize
+const BASE_CHART_OPTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 350 },
+};
+
+// ── Chart lifecycle helpers ───────────────────────────────────────────────────
+function destroyChart(canvasId) {
+  if (chartInstances[canvasId]) {
+    chartInstances[canvasId].destroy();
+    delete chartInstances[canvasId];
+  }
+}
+
+function createChart(canvasId, config) {
+  destroyChart(canvasId);
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  chartInstances[canvasId] = new Chart(canvas.getContext("2d"), config);
+  return chartInstances[canvasId];
+}
+
+function updateChartData(canvasId, newData) {
+  const chart = chartInstances[canvasId];
+  if (!chart) return false;
+  chart.data = newData;
+  chart.update("none");
+  return true;
+}
 
 // ── Navigation ───────────────────────────────────────────────────────────────
 function navigate(section) {
@@ -1037,7 +1103,7 @@ function navigate(section) {
   if (section === "statistics")     refreshStats();
   if (section === "modellab")       initModelLab();
   if (section === "visualizations") initVisualizations();
-  if (section === "history")        renderHistory();
+  if (section === "history")        loadHistoryPage();
 }
 
 // ── Server status check ─────────────────────────────────────────────────────
@@ -1099,11 +1165,10 @@ async function dashScan() {
 
     renderDashResult(data);
     addToSessionHistory(data);
-    updateConfMatrix(data.prediction);
     fetchWhois(url);
 
   } catch (err) {
-    showScanError("🚫 Cannot connect to server. Is Flask running on port 5000?");
+    showScanError("🚫 Cannot connect to server. Is Flask running? (default: http://localhost:5001)");
   } finally {
     setDashLoading(false);
   }
@@ -1325,6 +1390,9 @@ async function runBatch() {
     if (!r.ok) { alert(data.error || "Batch scan failed"); return; }
 
     batchResults = data.results;
+    data.results.forEach(r => {
+      if (!r.error) addToSessionHistory(r);
+    });
     renderBatchResults(data);
   } catch {
     alert("Cannot connect to server. Is Flask running?");
@@ -1375,10 +1443,30 @@ function addToSessionHistory(data) {
     url:        data.url,
     prediction: data.prediction,
     confidence: data.confidence,
-    risk:       data.risk ? data.risk.level : "—",
+    risk:       data.risk ? data.risk.level : (data.risk_level || "—"),
     timestamp:  now.toLocaleTimeString(),
   });
   if (sessionHistory.length > 200) sessionHistory.pop();
+}
+
+// Merge server-side scan log with local history (server has all scan types)
+async function loadHistoryPage() {
+  try {
+    const r = await fetch(API + "/stats");
+    if (r.ok) {
+      const data = await r.json();
+      if (data.history && data.history.length) {
+        sessionHistory = data.history.map(h => ({
+          url:        h.url,
+          prediction: h.prediction,
+          confidence: h.confidence,
+          risk:       h.risk || "—",
+          timestamp:  h.timestamp,
+        }));
+      }
+    }
+  } catch { /* use local history if server unavailable */ }
+  renderHistory();
 }
 
 function renderHistory() {
@@ -1410,7 +1498,6 @@ function renderHistory() {
 function clearHistory() {
   if (!confirm("Clear all scan history?")) return;
   sessionHistory = [];
-  confMatrix = {tp:0,fp:0,fn:0,tn:0};
   renderHistory();
   renderDashHistory();
 }
@@ -1425,7 +1512,6 @@ function exportHistoryCSV() {
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 4 — STATISTICS
 // ══════════════════════════════════════════════════════════════════════════════
-let donutChart = null, confChart = null;
 let statsInterval = null;
 
 async function refreshStats() {
@@ -1443,7 +1529,6 @@ async function refreshStats() {
     renderActivityFeed(data.recent_history || []);
   } catch { /* server may be starting */ }
 
-  // Auto-refresh while on stats page
   clearTimeout(statsInterval);
   statsInterval = setTimeout(() => {
     if (currentSection === "statistics") refreshStats();
@@ -1451,60 +1536,53 @@ async function refreshStats() {
 }
 
 function updateDonutChart(phishing, safe) {
-  const ctx = document.getElementById("donut-chart").getContext("2d");
-  if (donutChart) { donutChart.destroy(); donutChart = null; }
-  donutChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: ["Phishing", "Safe"],
-      datasets: [{
-        data: [phishing, safe],
-        backgroundColor: ["#ff475788","#2ed57388"],
-        borderColor:     ["#ff4757","#2ed573"],
-        borderWidth: 2,
-      }],
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:12}}},
-      },
-      cutout:"65%",
-    },
-  });
+  const chartData = {
+    labels: ["Phishing", "Safe"],
+    datasets: [{
+      data: [phishing, safe],
+      backgroundColor: ["#e8556388", "#3ecf8e88"],
+      borderColor:     ["#e85563", "#3ecf8e"],
+      borderWidth: 2,
+    }],
+  };
+  const opts = {
+    ...BASE_CHART_OPTS,
+    plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd", font: { size: 12 } } } },
+    cutout: "65%",
+  };
+  if (!updateChartData("donut-chart", chartData)) {
+    createChart("donut-chart", { type: "doughnut", data: chartData, options: opts });
+  }
 }
 
 function updateConfDistChart(history) {
-  const ctx     = document.getElementById("conf-chart").getContext("2d");
-  const buckets = [0,0,0,0,0]; // 0-20, 20-40, 40-60, 60-80, 80-100
+  const buckets = [0, 0, 0, 0, 0];
   history.forEach(h => {
     const c = parseFloat(h.confidence);
-    const b = Math.min(Math.floor(c / 20), 4);
-    buckets[b]++;
+    buckets[Math.min(Math.floor(c / 20), 4)]++;
   });
-  if (confChart) { confChart.destroy(); confChart = null; }
-  confChart = new Chart(ctx, {
-    type:"bar",
-    data:{
-      labels:["0-20%","20-40%","40-60%","60-80%","80-100%"],
-      datasets:[{
-        label:"Scans",
-        data:buckets,
-        backgroundColor:"#00d4aa44",
-        borderColor:"#00d4aa",
-        borderWidth:2,
-        borderRadius:6,
-      }],
+  const chartData = {
+    labels: ["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"],
+    datasets: [{
+      label: "Scans",
+      data: buckets,
+      backgroundColor: "#1ec9a844",
+      borderColor: "#1ec9a8",
+      borderWidth: 2,
+      borderRadius: 6,
+    }],
+  };
+  const opts = {
+    ...BASE_CHART_OPTS,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" } },
+      y: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", stepSize: 1 } },
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{color:"#1a3a5c"},ticks:{color:"#64748b"}},
-        y:{grid:{color:"#1a3a5c"},ticks:{color:"#64748b",stepSize:1}},
-      },
-    },
-  });
+  };
+  if (!updateChartData("conf-chart", chartData)) {
+    createChart("conf-chart", { type: "bar", data: chartData, options: opts });
+  }
 }
 
 function renderActivityFeed(history) {
@@ -1624,206 +1702,230 @@ function renderCompareResults(data) {
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 6 — VISUALIZATIONS
 // ══════════════════════════════════════════════════════════════════════════════
-let vizInitialized = false;
-
 async function initVisualizations() {
-  if (vizInitialized) return;
-  vizInitialized = true;
-
   const data = await fetchVizData();
 
-  // Always render feature distribution (uses static data from backend or defaults)
-  const featNames = data?.feature_names || [
-    "URL Length","Domain Length","Num Dots","Num Hyphens",
-    "Num @","Num Slashes","Num Digits","Has HTTPS","Has IP"
-  ];
-  const avgPhish = data?.dataset_averages?.phishing ||
-    [130, 38, 7, 5, 0.3, 9, 14, 0.2, 0.3];
-  const avgLegit = data?.dataset_averages?.legitimate ||
-    [44,  14, 2, 0, 0,   3, 2,  1.0, 0.0];
+  if (!modelChartsReady) {
+    modelChartsReady = true;
 
-  buildGroupedBar("feature-dist-chart", featNames, avgPhish, avgLegit);
-  buildSessionDist();
+    const featNames = data?.feature_names || [
+      "URL Length", "Domain Length", "Num Dots", "Num Hyphens",
+      "Num @", "Num Slashes", "Num Digits", "Has HTTPS", "Has IP",
+    ];
+    const avgPhish = data?.dataset_averages?.phishing ||
+      [130, 38, 7, 5, 0.3, 9, 14, 0.2, 0.3];
+    const avgLegit = data?.dataset_averages?.legitimate ||
+      [44, 14, 2, 0, 0, 3, 2, 1.0, 0.0];
 
-  if (!data?.available) {
-    ["algo-acc-chart","feat-imp-chart","radar-chart"].forEach(id => {
-      document.getElementById(id).style.display = "none";
-    });
-    document.getElementById("viz-no-data").style.display = "block";
-    document.getElementById("viz-no-fi").style.display   = "block";
-    document.getElementById("viz-no-radar").style.display = "block";
+    buildGroupedBar("feature-dist-chart", featNames, avgPhish, avgLegit);
+    renderTrainingConfMatrix(data);
+
+    if (!data?.available) {
+      ["algo-acc-chart", "feat-imp-chart", "radar-chart"].forEach(id => {
+        const wrap = document.getElementById(id)?.closest(".chart-wrap");
+        if (wrap) wrap.style.display = "none";
+      });
+      document.getElementById("viz-no-data").style.display = "block";
+      document.getElementById("viz-no-fi").style.display   = "block";
+      document.getElementById("viz-no-radar").style.display = "block";
+    } else {
+      const names    = Object.keys(data.metrics);
+      const accVals  = names.map(n => data.metrics[n].accuracy);
+      const precVals = names.map(n => data.metrics[n].precision);
+      const recVals  = names.map(n => data.metrics[n].recall);
+      const f1Vals   = names.map(n => data.metrics[n].f1_score);
+
+      buildAlgoAccChart("algo-acc-chart", names, accVals);
+
+      const fiSource = data.feature_importances["Random Forest"]
+                    || data.feature_importances["Decision Tree"];
+      if (fiSource) {
+        buildFeatImpChart("feat-imp-chart", featNames, fiSource);
+      } else {
+        const wrap = document.getElementById("feat-imp-chart")?.closest(".chart-wrap");
+        if (wrap) wrap.style.display = "none";
+        document.getElementById("viz-no-fi").style.display = "block";
+      }
+
+      buildRadarChart("radar-chart", names, accVals, precVals, recVals, f1Vals);
+    }
+  }
+
+  await refreshSessionDistChart();
+}
+
+function renderTrainingConfMatrix(data) {
+  const grid = document.getElementById("cm-grid");
+  const note = document.getElementById("cm-note");
+  const unavailable = document.getElementById("cm-unavailable");
+
+  if (!data?.available || !data.metrics) {
+    if (unavailable) unavailable.style.display = "block";
     return;
   }
 
-  const names   = Object.keys(data.metrics);
-  const accVals = names.map(n => data.metrics[n].accuracy);
-  const precVals= names.map(n => data.metrics[n].precision);
-  const recVals = names.map(n => data.metrics[n].recall);
-  const f1Vals  = names.map(n => data.metrics[n].f1_score);
+  const modelName = data.production_model || "Gradient Boosting";
+  const metrics   = data.metrics[modelName]
+                 || data.metrics["Random Forest"]
+                 || Object.values(data.metrics)[0];
+  const cm = metrics?.confusion_matrix;
 
-  buildAlgoAccChart("algo-acc-chart", names, accVals);
-
-  // Feature importance — prefer Random Forest, fallback to Decision Tree
-  const fiSource = data.feature_importances["Random Forest"] || data.feature_importances["Decision Tree"];
-  if (fiSource) {
-    buildFeatImpChart("feat-imp-chart", featNames, fiSource);
-  } else {
-    document.getElementById("feat-imp-chart").style.display = "none";
-    document.getElementById("viz-no-fi").style.display = "block";
+  if (!cm) {
+    if (unavailable) unavailable.style.display = "block";
+    return;
   }
 
-  buildRadarChart("radar-chart", names, accVals, precVals, recVals, f1Vals);
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set("cm-tp", cm[0][0]);
+  set("cm-fn", cm[0][1]);
+  set("cm-fp", cm[1][0]);
+  set("cm-tn", cm[1][1]);
+
+  if (grid) grid.style.display = "grid";
+  if (note) note.textContent = `Test-set evaluation — ${modelName} (20% holdout)`;
+  if (unavailable) unavailable.style.display = "none";
+}
+
+async function refreshSessionDistChart() {
+  let phishing = 0, safe = 0;
+  try {
+    const r = await fetch(API + "/stats");
+    if (r.ok) {
+      const data = await r.json();
+      phishing = data.phishing || 0;
+      safe     = data.safe || 0;
+    }
+  } catch {
+    phishing = sessionHistory.filter(h => h.prediction === "Phishing").length;
+    safe     = sessionHistory.length - phishing;
+  }
+
+  const chartData = {
+    labels: ["Phishing", "Legitimate"],
+    datasets: [{
+      data: [phishing, safe],
+      backgroundColor: ["#e8556366", "#3ecf8e66"],
+      borderColor: ["#e85563", "#3ecf8e"],
+      borderWidth: 2,
+    }],
+  };
+  const opts = {
+    ...BASE_CHART_OPTS,
+    plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd" } } },
+    cutout: "60%",
+  };
+
+  if (!updateChartData("session-dist-chart", chartData)) {
+    createChart("session-dist-chart", { type: "doughnut", data: chartData, options: opts });
+  }
 }
 
 function buildGroupedBar(canvasId, labels, phishData, legitData) {
-  const ctx = document.getElementById(canvasId).getContext("2d");
-  new Chart(ctx, {
-    type:"bar",
-    data:{
+  createChart(canvasId, {
+    type: "bar",
+    data: {
       labels,
-      datasets:[
-        {label:"Phishing (avg)",data:phishData,backgroundColor:"#ff475766",borderColor:"#ff4757",borderWidth:2,borderRadius:4},
-        {label:"Legitimate (avg)",data:legitData,backgroundColor:"#2ed57366",borderColor:"#2ed573",borderWidth:2,borderRadius:4},
+      datasets: [
+        { label: "Phishing (avg)", data: phishData, backgroundColor: "#e8556366", borderColor: "#e85563", borderWidth: 2, borderRadius: 4 },
+        { label: "Legitimate (avg)", data: legitData, backgroundColor: "#3ecf8e66", borderColor: "#3ecf8e", borderWidth: 2, borderRadius: 4 },
       ],
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:"top",labels:{color:"#94a3b8",font:{size:11}}}},
-      scales:{
-        x:{grid:{color:"#1a3a5c"},ticks:{color:"#64748b",font:{size:9},maxRotation:45}},
-        y:{grid:{color:"#1a3a5c"},ticks:{color:"#64748b"}},
+    options: {
+      ...BASE_CHART_OPTS,
+      plugins: { legend: { position: "top", labels: { color: "#8fa3bd", font: { size: 11 } } } },
+      scales: {
+        x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", font: { size: 9 }, maxRotation: 45 } },
+        y: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" } },
       },
     },
   });
 }
 
 function buildAlgoAccChart(canvasId, names, accVals) {
-  const ctx = document.getElementById(canvasId).getContext("2d");
-  const COLORS = ["#00d4aa","#3d8bff","#a29bfe","#ffa502","#2ed573","#ff4757"];
-  new Chart(ctx, {
-    type:"bar",
-    data:{
+  const COLORS = ["#1ec9a8", "#4d94ff", "#9b93e8", "#e89b3a", "#3ecf8e", "#e85563"];
+  createChart(canvasId, {
+    type: "bar",
+    data: {
       labels: names.map(n => n.replace(" ", "\n")),
-      datasets:[{
-        label:"Accuracy (%)",
+      datasets: [{
+        label: "Accuracy (%)",
         data: accVals,
         backgroundColor: COLORS.map(c => c + "66"),
-        borderColor:     COLORS,
-        borderWidth:2, borderRadius:6,
+        borderColor: COLORS,
+        borderWidth: 2,
+        borderRadius: 6,
       }],
     },
-    options:{
-      indexAxis:"y",
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{color:"#1a3a5c"},ticks:{color:"#64748b"},min:0,max:100},
-        y:{grid:{color:"#1a3a5c"},ticks:{color:"#94a3b8",font:{size:11}}},
+    options: {
+      indexAxis: "y",
+      ...BASE_CHART_OPTS,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" }, min: 0, max: 100 },
+        y: { grid: { color: "#1e3d5f" }, ticks: { color: "#8fa3bd", font: { size: 11 } } },
       },
     },
   });
 }
 
 function buildFeatImpChart(canvasId, names, importance) {
-  const ctx    = document.getElementById(canvasId).getContext("2d");
-  const paired = names.map((n, i) => ({name: n, imp: importance[i]}))
+  const paired = names.map((n, i) => ({ name: n, imp: importance[i] }))
                       .sort((a, b) => b.imp - a.imp);
-  new Chart(ctx, {
-    type:"bar",
-    data:{
+  createChart(canvasId, {
+    type: "bar",
+    data: {
       labels: paired.map(p => p.name),
-      datasets:[{
-        label:"Importance",
-        data:  paired.map(p => +(p.imp * 100).toFixed(2)),
-        backgroundColor:"#00d4aa44",
-        borderColor:"#00d4aa",
-        borderWidth:2, borderRadius:4,
+      datasets: [{
+        label: "Importance",
+        data: paired.map(p => +(p.imp * 100).toFixed(2)),
+        backgroundColor: "#1ec9a844",
+        borderColor: "#1ec9a8",
+        borderWidth: 2,
+        borderRadius: 4,
       }],
     },
-    options:{
-      indexAxis:"y",
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{color:"#1a3a5c"},ticks:{color:"#64748b",callback: v => v + "%"}},
-        y:{grid:{color:"#1a3a5c"},ticks:{color:"#94a3b8",font:{size:11}}},
+    options: {
+      indexAxis: "y",
+      ...BASE_CHART_OPTS,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", callback: v => v + "%" } },
+        y: { grid: { color: "#1e3d5f" }, ticks: { color: "#8fa3bd", font: { size: 11 } } },
       },
     },
   });
 }
 
 function buildRadarChart(canvasId, names, acc, prec, rec, f1) {
-  const ctx    = document.getElementById(canvasId).getContext("2d");
-  const COLORS = ["#00d4aa","#3d8bff","#a29bfe","#ffa502","#2ed573","#ff4757"];
-  new Chart(ctx, {
-    type:"radar",
-    data:{
-      labels:["Accuracy","Precision","Recall","F1 Score"],
+  const COLORS = ["#1ec9a8", "#4d94ff", "#9b93e8", "#e89b3a", "#3ecf8e", "#e85563"];
+  createChart(canvasId, {
+    type: "radar",
+    data: {
+      labels: ["Accuracy", "Precision", "Recall", "F1 Score"],
       datasets: names.map((name, i) => ({
         label: name,
         data: [acc[i], prec[i], rec[i], f1[i]],
         backgroundColor: COLORS[i % COLORS.length] + "22",
-        borderColor:     COLORS[i % COLORS.length],
-        borderWidth:2, pointRadius:3,
+        borderColor: COLORS[i % COLORS.length],
+        borderWidth: 2,
+        pointRadius: 3,
       })),
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      scales:{
-        r:{
-          grid:{color:"#1a3a5c"},
-          angleLines:{color:"#1a3a5c"},
-          pointLabels:{color:"#94a3b8",font:{size:11}},
-          ticks:{display:false},
-          min:0, max:100,
+    options: {
+      ...BASE_CHART_OPTS,
+      scales: {
+        r: {
+          grid: { color: "#1e3d5f" },
+          angleLines: { color: "#1e3d5f" },
+          pointLabels: { color: "#8fa3bd", font: { size: 11 } },
+          ticks: { display: false },
+          min: 0,
+          max: 100,
         },
       },
-      plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:10}}}},
+      plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd", font: { size: 10 } } } },
     },
   });
-}
-
-function buildSessionDist() {
-  const ctx = document.getElementById("session-dist-chart").getContext("2d");
-  const phishing = sessionHistory.filter(h => h.prediction === "Phishing").length;
-  const safe     = sessionHistory.length - phishing;
-  new Chart(ctx, {
-    type:"doughnut",
-    data:{
-      labels:["Phishing","Legitimate"],
-      datasets:[{
-        data:[phishing || 0, safe || 0],
-        backgroundColor:["#ff475766","#2ed57366"],
-        borderColor:["#ff4757","#2ed573"],
-        borderWidth:2,
-      }],
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:"bottom",labels:{color:"#94a3b8"}}},
-      cutout:"60%",
-    },
-  });
-}
-
-// ── Confusion matrix ─────────────────────────────────────────────────────────
-function updateConfMatrix(prediction) {
-  // Simple approximation: if model says Phishing → TP if correct
-  // We can't know ground truth, so we just track predictions for display
-  if (prediction === "Phishing") confMatrix.tp++;
-  else confMatrix.tn++;
-
-  const grid = document.getElementById("cm-grid");
-  const msg  = document.querySelector("#cm-display > div");
-  if (confMatrix.tp + confMatrix.tn > 0) {
-    if (grid) grid.style.display = "grid";
-    if (msg)  msg.style.display  = "none";
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set("cm-tp", confMatrix.tp);
-    set("cm-tn", confMatrix.tn);
-    set("cm-fp", confMatrix.fp);
-    set("cm-fn", confMatrix.fn);
-  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1849,6 +1951,7 @@ async function runRiskScan() {
     const data = await r.json();
     if (!r.ok) { alert(data.error || "Error"); return; }
 
+    addToSessionHistory(data);
     renderRiskSection(data);
   } catch {
     alert("Cannot connect to server.");
