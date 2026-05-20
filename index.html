@@ -1919,7 +1919,7 @@
         fetchWhois(url);
 
       } catch (err) {
-        showScanError("🚫 Cannot connect to server. Is Flask running? (default: http://localhost:5001)");
+        showScanError("🚫 Cannot connect to server. Open the URL printed by python app.py (e.g. http://localhost:5001).");
       } finally {
         setDashLoading(false);
       }

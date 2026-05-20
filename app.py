@@ -117,11 +117,41 @@ for name, fname in TRAINED_MODEL_FILES.items():
         loaded_models[name] = joblib.load(fpath)
         print(f"[OK] {name} model loaded.")
 
+# Label convention — must match SafeWeb-code.ipynb and train_all_models.py:
+#   0 = Legitimate / Safe (dataset label "good")
+#   1 = Phishing / Malicious (dataset label "bad")
+LABEL_LEGITIMATE = 0
+LABEL_PHISHING = 1
+
+
+def decode_prediction(clf, scaled_row) -> tuple:
+    """Return (human_label, confidence_percent) from a fitted classifier."""
+    pred = int(clf.predict(scaled_row)[0])
+    probas = clf.predict_proba(scaled_row)[0]
+    classes = list(clf.classes_)
+    conf = float(probas[classes.index(pred)]) * 100
+    label = "Phishing" if pred == LABEL_PHISHING else "Legitimate"
+    return label, conf
+
+
 # ─── Feature extraction ───────────────────────────────────────────────────────
 _IP_PATTERN = re.compile(
     r"^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}"
     r"(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$"
 )
+_SCHEME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z\d+\-.]*://")
+
+
+def _normalize_url(url: str) -> str:
+    """
+    Match training data format: CSV URLs are usually scheme-less.
+    Strip http(s):// before parsing so user-entered https does not skew features.
+    """
+    url = url.strip()
+    if not url:
+        return "http://"
+    url = _SCHEME_PATTERN.sub("", url)
+    return "http://" + url.lstrip("/")
 
 
 def extract_features(url: str) -> list:
@@ -137,25 +167,21 @@ def extract_features(url: str) -> list:
       8. has_https        — 1 if HTTPS, else 0
       9. has_ip           — 1 if hostname is an IPv4 address
     """
-    # Prepend http:// if URL doesn't have scheme (matches SafeWeb-code.ipynb feature training)
-    url_lower = url.lower()
-    if not (url_lower.startswith("http://") or url_lower.startswith("https://")):
-        url = "http://" + url
-
+    original = url.strip()
+    url = _normalize_url(url)
     parsed = urlparse(url)
     hostname = parsed.hostname or ""
-    domain = parsed.netloc
-
+    has_https = 1 if _SCHEME_PATTERN.match(original) and original.lower().startswith("https") else 0
     return [
         len(url),
-        len(domain),
+        len(parsed.netloc),
         url.count("."),
         url.count("-"),
         url.count("@"),
         url.count("/"),
         sum(c.isdigit() for c in url),
-        1 if parsed.scheme.lower() == "https" else 0,
-        1 if _IP_PATTERN.match(hostname or domain) else 0,
+        has_https,
+        1 if _IP_PATTERN.match(hostname) else 0,
     ]
 
 
@@ -260,17 +286,9 @@ def predict():
     except Exception as e:
         return jsonify({"error": f"Feature extraction failed: {e}"}), 422
 
-    arr     = np.array(features).reshape(1, -1)
-    scaled  = scaler.transform(arr)
-    pred    = model.predict(scaled)[0]
-    probas  = model.predict_proba(scaled)[0]
-
-    if int(pred) == 0:
-        label = "Legitimate"
-        conf  = float(probas[0]) * 100
-    else:
-        label = "Phishing"
-        conf  = float(probas[1]) * 100
+    arr    = np.array(features).reshape(1, -1)
+    scaled = scaler.transform(arr)
+    label, conf = decode_prediction(model, scaled)
 
     risk = compute_risk_score(features)
     record_stat(url, label, round(conf, 2), risk["level"])
@@ -285,7 +303,53 @@ def predict():
     })
 
 
-# ── 2. Compare all trained models ─────────────────────────────────────────────
+# ── 2. Batch scan ─────────────────────────────────────────────────────────────
+@app.route("/batch", methods=["POST"])
+def batch_predict():
+    """
+    POST {"urls": ["https://a.com", "http://b.com", ...]}
+    Returns a list of predictions (same format as /predict).
+    """
+    data = request.get_json(force=True, silent=True)
+    urls = data.get("urls", []) if data else []
+
+    if not urls or not isinstance(urls, list):
+        return jsonify({"error": "Provide a list under 'urls'"}), 400
+
+    results = []
+    for url in urls[:50]:           # hard cap at 50
+        url = str(url).strip()
+        if not url:
+            continue
+        try:
+            features = extract_features(url)
+            arr    = np.array(features).reshape(1, -1)
+            scaled = scaler.transform(arr)
+            label, conf = decode_prediction(model, scaled)
+
+            risk = compute_risk_score(features)
+            record_stat(url, label, round(conf, 2), risk["level"])
+
+            results.append({
+                "url":        url,
+                "prediction": label,
+                "confidence": round(conf, 2),
+                "risk_score": risk["score"],
+                "risk_level": risk["level"],
+            })
+        except Exception as e:
+            results.append({"url": url, "error": str(e)})
+
+    phishing_count = sum(1 for r in results if r.get("prediction") == "Phishing")
+    return jsonify({
+        "results":        results,
+        "total":          len(results),
+        "phishing_found": phishing_count,
+        "safe_found":     len(results) - phishing_count,
+    })
+
+
+# ── 3. Compare all trained models ─────────────────────────────────────────────
 @app.route("/compare", methods=["POST"])
 def compare_models():
     """
@@ -303,11 +367,8 @@ def compare_models():
     comparison = {}
 
     # Production model (uses its own scaler)
-    scaled    = scaler.transform(arr)
-    prod_pred = model.predict(scaled)[0]
-    prod_prob = model.predict_proba(scaled)[0]
-    prod_lbl  = "Legitimate" if int(prod_pred) == 0 else "Phishing"
-    prod_conf = float(prod_prob[0] if int(prod_pred) == 0 else prod_prob[1]) * 100
+    scaled = scaler.transform(arr)
+    prod_lbl, prod_conf = decode_prediction(model, scaled)
     comparison["Production Model"] = {
         "prediction": prod_lbl,
         "confidence": round(prod_conf, 2),
@@ -322,10 +383,7 @@ def compare_models():
 
         for name, clf in loaded_models.items():
             try:
-                p     = clf.predict(arr_s)[0]
-                proba = clf.predict_proba(arr_s)[0]
-                lbl   = "Legitimate" if int(p) == 0 else "Phishing"
-                conf  = float(proba[0] if int(p) == 0 else proba[1]) * 100
+                lbl, conf = decode_prediction(clf, arr_s)
                 comparison[name] = {"prediction": lbl, "confidence": round(conf, 2)}
             except Exception as e:
                 comparison[name] = {"error": str(e)}
@@ -435,13 +493,25 @@ def find_free_port(start: int = 5001, attempts: int = 10) -> int:
 if __name__ == "__main__":
     # Port 5000 is often taken by macOS AirPlay Receiver — default to 5001
     requested = int(os.environ.get("PORT", 5001))
-    port = find_free_port(requested) if os.environ.get("PORT") is None else requested
-    if port != requested:
-        print(f"[INFO]  Port {requested} is busy — using {port} instead.")
-    print(f"\n[SafeWeb] Server starting on http://localhost:{port}")
-    if not loaded_models:
-        print("[INFO]  Model Lab disabled — run train_all_models.py to enable it.")
-    if not HAS_WHOIS:
-        print("[INFO]  WHOIS lookup disabled — run: pip install python-whois")
-    print()
+
+    # Flask debug reloader runs this script twice. Pick the port once in the
+    # supervisor process so the child does not see its own port as "busy".
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        if "SAFEWEB_PORT" not in os.environ:
+            port = find_free_port(requested) if os.environ.get("PORT") is None else requested
+            os.environ["SAFEWEB_PORT"] = str(port)
+            if port != requested:
+                print(f"[INFO]  Port {requested} is busy — using {port} instead.")
+
+    port = int(os.environ.get("SAFEWEB_PORT", os.environ.get("PORT", requested)))
+
+    # Avoid duplicate startup banners from supervisor + reloader child
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        print(f"\n[SafeWeb] Server starting on http://localhost:{port}")
+        if not loaded_models:
+            print("[INFO]  Model Lab disabled — run train_all_models.py to enable it.")
+        if not HAS_WHOIS:
+            print("[INFO]  WHOIS lookup disabled — run: pip install python-whois")
+        print()
+
     app.run(host="0.0.0.0", port=port, debug=True)
