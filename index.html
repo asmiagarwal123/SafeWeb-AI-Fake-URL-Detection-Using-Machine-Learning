@@ -1,1313 +1,2064 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SafeWeb — Phishing Intelligence Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-/* ═══════════════════════════════════════════════════════════════════════════
+    /* ═══════════════════════════════════════════════════════════════════════════
    RESET & VARIABLES
 ═══════════════════════════════════════════════════════════════════════════ */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:       #070e1c;
-  --panel:    #0c1729;
-  --card:     #101f38;
-  --card2:    #142845;
-  --border:   #1e3d5f;
-  --border2:  #2a4d72;
-  --teal:     #1ec9a8;
-  --teal2:    #17a88c;
-  --teal-dim: #1ec9a818;
-  --red:      #e85563;
-  --red-dim:  #e8556318;
-  --green:    #3ecf8e;
-  --green-dim:#3ecf8e18;
-  --yellow:   #e89b3a;
-  --yellow-dim:#e89b3a18;
-  --blue:     #4d94ff;
-  --blue-dim: #4d94ff18;
-  --purple:   #9b93e8;
-  --text:     #dce4ef;
-  --muted:    #6b7f99;
-  --muted2:   #8fa3bd;
-  --font-head: 'Exo 2', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --font-mono: 'DM Mono', monospace;
-  --r:        9px;
-  --sidebar:  228px;
-}
-html,body{height:100%;overflow:hidden}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:var(--font-body);
-  font-size:14px;
-  display:flex;
-}
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    :root {
+      --bg: #070e1c;
+      --panel: #0c1729;
+      --card: #101f38;
+      --card2: #142845;
+      --border: #1e3d5f;
+      --border2: #2a4d72;
+      --teal: #1ec9a8;
+      --teal2: #17a88c;
+      --teal-dim: #1ec9a818;
+      --red: #e85563;
+      --red-dim: #e8556318;
+      --green: #3ecf8e;
+      --green-dim: #3ecf8e18;
+      --yellow: #e89b3a;
+      --yellow-dim: #e89b3a18;
+      --blue: #4d94ff;
+      --blue-dim: #4d94ff18;
+      --purple: #9b93e8;
+      --text: #dce4ef;
+      --muted: #6b7f99;
+      --muted2: #8fa3bd;
+      --font-head: 'Exo 2', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --r: 9px;
+      --sidebar: 228px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      display: flex;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    BACKGROUND GRID
 ═══════════════════════════════════════════════════════════════════════════ */
-body::before{
-  content:"";
-  position:fixed;inset:0;
-  background-image:
-    linear-gradient(var(--border) 1px,transparent 1px),
-    linear-gradient(90deg,var(--border) 1px,transparent 1px);
-  background-size:48px 48px;
-  opacity:.07;
-  pointer-events:none;
-  z-index:0;
-}
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: .07;
+      pointer-events: none;
+      z-index: 0;
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    /* ═══════════════════════════════════════════════════════════════════════════
    SIDEBAR
 ═══════════════════════════════════════════════════════════════════════════ */
-#sidebar{
-  width:var(--sidebar);
-  min-height:100vh;
-  background:linear-gradient(180deg,var(--panel) 0%,#091220 100%);
-  border-right:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  padding:0 0 16px;
-  position:relative;
-  z-index:10;
-  flex-shrink:0;
-}
-.sidebar-logo{
-  display:flex;align-items:center;gap:10px;
-  padding:20px 16px 16px;
-  border-bottom:1px solid var(--border);
-  margin-bottom:8px;
-}
-.logo-icon{
-  width:36px;height:36px;
-  background:linear-gradient(135deg,#00d4aa33,#00d4aa);
-  border-radius:10px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;
-}
-.logo-text{font-family:var(--font-head);font-weight:800;font-size:1.15rem;letter-spacing:-.5px}
-.logo-sub{font-size:0.65rem;color:var(--muted);letter-spacing:.5px;font-family:var(--font-mono)}
+    #sidebar {
+      width: var(--sidebar);
+      min-height: 100vh;
+      background: linear-gradient(180deg, var(--panel) 0%, #091220 100%);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0 0 16px;
+      position: relative;
+      z-index: 10;
+      flex-shrink: 0;
+    }
 
-.nav-group{padding:8px 12px 4px}
-.nav-label{
-  font-size:.63rem;letter-spacing:1.5px;
-  color:var(--muted);font-family:var(--font-mono);
-  text-transform:uppercase;padding:0 4px 6px;
-}
-.nav-item{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 12px;border-radius:8px;
-  cursor:pointer;transition:all .2s;
-  color:var(--muted2);font-size:.88rem;
-  margin-bottom:2px;user-select:none;
-  font-family:var(--font-body);font-weight:500;
-}
-.nav-item:hover{background:var(--card2);color:var(--text)}
-.nav-item.active{background:var(--teal-dim);color:var(--teal);border-left:2px solid var(--teal);padding-left:10px}
-.nav-icon{width:18px;text-align:center;font-size:.95rem}
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
 
-.sidebar-footer{
-  margin-top:auto;padding:12px 16px;
-  border-top:1px solid var(--border);
-  font-size:.7rem;color:var(--muted);
-  font-family:var(--font-mono);line-height:1.7;
-}
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #00d4aa33, #00d4aa);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .logo-text {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -.5px
+    }
+
+    .logo-sub {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: .5px;
+      font-family: var(--font-mono)
+    }
+
+    .nav-group {
+      padding: 8px 12px 4px
+    }
+
+    .nav-label {
+      font-size: .63rem;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      padding: 0 4px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s;
+      color: var(--muted2);
+      font-size: .88rem;
+      margin-bottom: 2px;
+      user-select: none;
+      font-family: var(--font-body);
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: var(--card2);
+      color: var(--text)
+    }
+
+    .nav-item.active {
+      background: var(--teal-dim);
+      color: var(--teal);
+      border-left: 2px solid var(--teal);
+      padding-left: 10px
+    }
+
+    .nav-icon {
+      width: 18px;
+      text-align: center;
+      font-size: .95rem
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-size: .7rem;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      line-height: 1.7;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    MAIN CONTENT
 ═══════════════════════════════════════════════════════════════════════════ */
-#main{
-  flex:1;overflow-y:auto;overflow-x:hidden;
-  position:relative;z-index:1;
-}
-.section{display:none;padding:26px 32px 44px 26px;animation:fadeIn .28s ease}
-.section.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+      z-index: 1;
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .section {
+      display: none;
+      padding: 26px 32px 44px 26px;
+      animation: fadeIn .28s ease
+    }
+
+    .section.active {
+      display: block
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SHARED COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════ */
-.page-header{margin-bottom:26px;padding-left:2px}
-.page-title{
-  font-family:var(--font-head);font-size:1.45rem;font-weight:700;
-  letter-spacing:-.3px;line-height:1.25;
-}
-.page-title span{color:var(--teal)}
-.page-sub{color:var(--muted);font-size:.84rem;margin-top:6px;max-width:52ch;line-height:1.5}
+    .page-header {
+      margin-bottom: 26px;
+      padding-left: 2px
+    }
 
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:var(--r);
-  padding:20px 22px;
-  transition:border-color .22s ease,box-shadow .22s ease;
-}
-.card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,.18)}
-.card-title{
-  font-family:var(--font-head);font-size:.85rem;
-  font-weight:600;letter-spacing:.5px;
-  color:var(--muted2);text-transform:uppercase;
-  margin-bottom:14px;display:flex;align-items:center;gap:8px;
-}
-.card-title .dot{
-  width:6px;height:6px;border-radius:50%;
-  background:var(--teal);display:inline-block;
-}
+    .page-title {
+      font-family: var(--font-head);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -.3px;
+      line-height: 1.25;
+    }
 
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.gap-16{gap:16px}
-.mt-16{margin-top:16px}
-.mt-24{margin-top:24px}
+    .page-title span {
+      color: var(--teal)
+    }
 
-/* Stat cards */
-.stat-card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:17px 19px 19px;
-  display:flex;flex-direction:column;gap:5px;
-  transition:border-color .22s ease,transform .22s ease;
-}
-.stat-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.stat-label{font-size:.75rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-family:var(--font-mono)}
-.stat-value{font-family:var(--font-head);font-size:2rem;font-weight:700}
-.stat-sub{font-size:.75rem;color:var(--muted2)}
-.stat-card.teal .stat-value{color:var(--teal)}
-.stat-card.red  .stat-value{color:var(--red)}
-.stat-card.green.stat-value{color:var(--green)}
-.stat-card.green .stat-value{color:var(--green)}
-.stat-card.yellow .stat-value{color:var(--yellow)}
+    .page-sub {
+      color: var(--muted);
+      font-size: .84rem;
+      margin-top: 6px;
+      max-width: 52ch;
+      line-height: 1.5
+    }
 
-/* Inputs */
-.input-row{display:flex;gap:10px}
-.inp{
-  background:var(--panel);color:var(--text);
-  border:1px solid var(--border);border-radius:8px;
-  padding:11px 14px;font-size:.88rem;outline:none;
-  font-family:var(--font-body);transition:border-color .2s,box-shadow .2s;
-  width:100%;
-}
-.inp:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-dim)}
-.inp::placeholder{color:var(--muted)}
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px 22px;
+      transition: border-color .22s ease, box-shadow .22s ease;
+    }
 
-.btn{
-  padding:11px 20px;border:none;border-radius:8px;cursor:pointer;
-  font-size:.88rem;font-weight:600;font-family:var(--font-body);
-  display:inline-flex;align-items:center;gap:8px;
-  transition:all .2s;white-space:nowrap;
-}
-.btn-primary{background:var(--teal);color:#000}
-.btn-primary:hover{background:var(--teal2);transform:translateY(-1px);box-shadow:0 4px 14px var(--teal-dim)}
-.btn-ghost{background:var(--card2);color:var(--text);border:1px solid var(--border)}
-.btn-ghost:hover{border-color:var(--teal);color:var(--teal)}
-.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
-.btn-danger:hover{background:var(--red);color:#fff}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+    .card:hover {
+      border-color: var(--border2);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .18)
+    }
 
-/* Badges */
-.badge{
-  display:inline-block;padding:3px 10px;border-radius:20px;
-  font-size:.72rem;font-weight:600;font-family:var(--font-mono);
-  letter-spacing:.5px;text-transform:uppercase;
-}
-.badge-phishing{background:var(--red-dim);color:var(--red)}
-.badge-safe{background:var(--green-dim);color:var(--green)}
-.badge-warn{background:var(--yellow-dim);color:var(--yellow)}
-.badge-info{background:var(--blue-dim);color:var(--blue)}
+    .card-title {
+      font-family: var(--font-head);
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      color: var(--muted2);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-/* Tables */
-.tbl{width:100%;border-collapse:collapse}
-.tbl th{
-  text-align:left;font-size:.72rem;font-family:var(--font-mono);
-  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
-  padding:8px 12px;border-bottom:1px solid var(--border);
-}
-.tbl td{
-  padding:10px 12px;border-bottom:1px solid var(--border);
-  font-size:.85rem;
-}
-.tbl tr:last-child td{border-bottom:none}
-.tbl tr:hover td{background:var(--card2)}
+    .card-title .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: inline-block;
+    }
 
-/* Spinner */
-.spinner{
-  width:14px;height:14px;border:2px solid rgba(0,0,0,.3);
-  border-top-color:#000;border-radius:50%;
-  animation:spin .6s linear infinite;display:none;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px
+    }
+
+    .gap-16 {
+      gap: 16px
+    }
+
+    .mt-16 {
+      margin-top: 16px
+    }
+
+    .mt-24 {
+      margin-top: 24px
+    }
+
+    /* Stat cards */
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 17px 19px 19px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: border-color .22s ease, transform .22s ease;
+    }
+
+    .stat-card:hover {
+      border-color: var(--border2);
+      transform: translateY(-1px)
+    }
+
+    .stat-label {
+      font-size: .75rem;
+      color: var(--muted);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      font-family: var(--font-mono)
+    }
+
+    .stat-value {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 700
+    }
+
+    .stat-sub {
+      font-size: .75rem;
+      color: var(--muted2)
+    }
+
+    .stat-card.teal .stat-value {
+      color: var(--teal)
+    }
+
+    .stat-card.red .stat-value {
+      color: var(--red)
+    }
+
+    .stat-card.green.stat-value {
+      color: var(--green)
+    }
+
+    .stat-card.green .stat-value {
+      color: var(--green)
+    }
+
+    .stat-card.yellow .stat-value {
+      color: var(--yellow)
+    }
+
+    /* Inputs */
+    .input-row {
+      display: flex;
+      gap: 10px
+    }
+
+    .inp {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: .88rem;
+      outline: none;
+      font-family: var(--font-body);
+      transition: border-color .2s, box-shadow .2s;
+      width: 100%;
+    }
+
+    .inp:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-dim)
+    }
+
+    .inp::placeholder {
+      color: var(--muted)
+    }
+
+    .btn {
+      padding: 11px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .88rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #000
+    }
+
+    .btn-primary:hover {
+      background: var(--teal2);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px var(--teal-dim)
+    }
+
+    .btn-ghost {
+      background: var(--card2);
+      color: var(--text);
+      border: 1px solid var(--border)
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--teal);
+      color: var(--teal)
+    }
+
+    .btn-danger {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid var(--red)
+    }
+
+    .btn-danger:hover {
+      background: var(--red);
+      color: #fff
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none !important
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    .badge-phishing {
+      background: var(--red-dim);
+      color: var(--red)
+    }
+
+    .badge-safe {
+      background: var(--green-dim);
+      color: var(--green)
+    }
+
+    .badge-warn {
+      background: var(--yellow-dim);
+      color: var(--yellow)
+    }
+
+    .badge-info {
+      background: var(--blue-dim);
+      color: var(--blue)
+    }
+
+    /* Tables */
+    .tbl {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    .tbl th {
+      text-align: left;
+      font-size: .72rem;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tbl td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: .85rem;
+    }
+
+    .tbl tr:last-child td {
+      border-bottom: none
+    }
+
+    .tbl tr:hover td {
+      background: var(--card2)
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0, 0, 0, .3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 1 — DASHBOARD
 ═══════════════════════════════════════════════════════════════════════════ */
-#dash-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+    #dash-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: start
+    }
 
-/* Scan card */
-#scan-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px}
-.scan-header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
-.shield{
-  width:48px;height:48px;background:linear-gradient(135deg,#00d4aa22,#00d4aa55);
-  border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-size:22px;animation:pulse 3s ease-in-out infinite;
-  border:1px solid var(--teal);
-}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--teal-dim)}50%{box-shadow:0 0 0 8px transparent}}
-.scan-title{font-family:var(--font-head);font-size:1.3rem;font-weight:700}
-.scan-sub{color:var(--muted);font-size:.8rem}
+    /* Scan card */
+    #scan-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 28px
+    }
 
-#scan-error{
-  display:none;padding:10px 14px;border-radius:8px;font-size:.83rem;
-  margin-top:12px;background:var(--red-dim);color:var(--red);border:1px solid var(--red);
-}
+    .scan-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px
+    }
 
-/* Result area */
-#result-area{display:none;margin-top:22px}
-.result-top{
-  display:flex;align-items:center;gap:20px;
-  padding:20px;border-radius:10px;margin-bottom:16px;
-  border:1px solid var(--border);
-}
-.result-top.phishing{background:var(--red-dim);border-color:var(--red)}
-.result-top.safe{background:var(--green-dim);border-color:var(--green)}
-.result-icon-big{font-size:2.2rem}
-.result-info{}
-.result-verdict{font-family:var(--font-head);font-size:1.2rem;font-weight:700}
-.result-verdict.phishing{color:var(--red)}
-.result-verdict.safe{color:var(--green)}
-.result-urltext{font-family:var(--font-mono);font-size:.75rem;color:var(--muted2);margin-top:4px;word-break:break-all}
+    .shield {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #00d4aa22, #00d4aa55);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      animation: pulse 3s ease-in-out infinite;
+      border: 1px solid var(--teal);
+    }
 
-/* Confidence ring */
-#ring-panel{
-  display:flex;flex-direction:column;align-items:center;
-  background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:24px;
-}
-.ring-wrap{position:relative;width:140px;height:140px;margin-bottom:12px}
-.ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
-#ring-track{fill:none;stroke:var(--border2);stroke-width:10}
-#ring-fill{
-  fill:none;stroke-width:10;
-  stroke-linecap:round;
-  stroke-dasharray:376;stroke-dashoffset:376;
-  transition:stroke-dashoffset 1s cubic-bezier(.22,1,.36,1),stroke .3s;
-}
-.ring-center{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-}
-.ring-pct{font-family:var(--font-head);font-size:1.6rem;font-weight:700}
-.ring-lab{font-size:.7rem;color:var(--muted);font-family:var(--font-mono)}
-.ring-label{font-family:var(--font-head);font-size:.85rem;font-weight:600;color:var(--muted2)}
+    @keyframes pulse {
 
-/* Feature breakdown */
-#feature-panel{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
-  padding:20px;display:none;margin-top:16px;
-}
-.feat-title{font-family:var(--font-head);font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin-bottom:12px}
-.feat-row{
-  display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
-  padding:7px 10px;border-radius:6px;margin-bottom:4px;
-  font-size:.82rem;
-}
-.feat-row.suspicious{background:var(--red-dim)}
-.feat-row.ok{background:var(--teal-dim)}
-.feat-name{color:var(--muted2)}
-.feat-val{font-family:var(--font-mono);font-weight:500}
-.feat-status{font-size:1rem}
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 var(--teal-dim)
+      }
 
-/* Risk meter */
-#risk-panel{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
-  padding:20px;display:none;margin-top:16px;
-}
-.risk-bar-track{background:var(--panel);border-radius:20px;height:10px;overflow:hidden;margin:10px 0}
-.risk-bar-fill{height:100%;border-radius:20px;transition:width 1s cubic-bezier(.22,1,.36,1)}
-.risk-rules{margin-top:12px;display:flex;flex-direction:column;gap:6px}
-.risk-rule{
-  display:flex;justify-content:space-between;align-items:center;
-  font-size:.78rem;padding:6px 10px;border-radius:6px;background:var(--panel);
-  border-left:3px solid;
-}
-.risk-rule.critical{border-color:var(--red)}
-.risk-rule.high{border-color:var(--yellow)}
-.risk-rule.medium{border-color:var(--blue)}
-.risk-rule.low{border-color:var(--muted)}
-.rule-pts{font-family:var(--font-mono);font-weight:600;color:var(--red)}
+      50% {
+        box-shadow: 0 0 0 8px transparent
+      }
+    }
 
-/* WHOIS panel */
-#whois-panel{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
-  padding:20px;display:none;margin-top:16px;
-}
-.whois-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.whois-item{background:var(--panel);padding:10px 14px;border-radius:8px}
-.whois-k{font-size:.7rem;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase}
-.whois-v{font-size:.88rem;font-weight:600;margin-top:3px}
+    .scan-title {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      font-weight: 700
+    }
 
-/* Recent history on dashboard */
-#dash-history{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;
-}
-.hist-item{
-  display:flex;align-items:center;gap:10px;
-  padding:8px 0;border-bottom:1px solid var(--border);font-size:.8rem;
-}
-.hist-item:last-child{border-bottom:none}
-.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.hist-dot.phishing{background:var(--red)}
-.hist-dot.safe{background:var(--green)}
-.hist-url{flex:1;font-family:var(--font-mono);font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted2)}
-.hist-time{color:var(--muted);font-size:.7rem;font-family:var(--font-mono)}
+    .scan-sub {
+      color: var(--muted);
+      font-size: .8rem
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    #scan-error {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: .83rem;
+      margin-top: 12px;
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    /* Result area */
+    #result-area {
+      display: none;
+      margin-top: 22px
+    }
+
+    .result-top {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .result-top.phishing {
+      background: var(--red-dim);
+      border-color: var(--red)
+    }
+
+    .result-top.safe {
+      background: var(--green-dim);
+      border-color: var(--green)
+    }
+
+    .result-icon-big {
+      font-size: 2.2rem
+    }
+
+    .result-info {}
+
+    .result-verdict {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      font-weight: 700
+    }
+
+    .result-verdict.phishing {
+      color: var(--red)
+    }
+
+    .result-verdict.safe {
+      color: var(--green)
+    }
+
+    .result-urltext {
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      color: var(--muted2);
+      margin-top: 4px;
+      word-break: break-all
+    }
+
+    /* Confidence ring */
+    #ring-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px;
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin-bottom: 12px
+    }
+
+    .ring-wrap svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg)
+    }
+
+    #ring-track {
+      fill: none;
+      stroke: var(--border2);
+      stroke-width: 10
+    }
+
+    #ring-fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 376;
+      stroke-dashoffset: 376;
+      transition: stroke-dashoffset 1s cubic-bezier(.22, 1, .36, 1), stroke .3s;
+    }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-pct {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 700
+    }
+
+    .ring-lab {
+      font-size: .7rem;
+      color: var(--muted);
+      font-family: var(--font-mono)
+    }
+
+    .ring-label {
+      font-family: var(--font-head);
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted2)
+    }
+
+    /* Feature breakdown */
+    #feature-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px;
+      display: none;
+      margin-top: 16px;
+    }
+
+    .feat-title {
+      font-family: var(--font-head);
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted2);
+      margin-bottom: 12px
+    }
+
+    .feat-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 10px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-size: .82rem;
+    }
+
+    .feat-row.suspicious {
+      background: var(--red-dim)
+    }
+
+    .feat-row.ok {
+      background: var(--teal-dim)
+    }
+
+    .feat-name {
+      color: var(--muted2)
+    }
+
+    .feat-val {
+      font-family: var(--font-mono);
+      font-weight: 500
+    }
+
+    .feat-status {
+      font-size: 1rem
+    }
+
+    /* Risk meter */
+    #risk-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px;
+      display: none;
+      margin-top: 16px;
+    }
+
+    .risk-bar-track {
+      background: var(--panel);
+      border-radius: 20px;
+      height: 10px;
+      overflow: hidden;
+      margin: 10px 0
+    }
+
+    .risk-bar-fill {
+      height: 100%;
+      border-radius: 20px;
+      transition: width 1s cubic-bezier(.22, 1, .36, 1)
+    }
+
+    .risk-rules {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px
+    }
+
+    .risk-rule {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .78rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--panel);
+      border-left: 3px solid;
+    }
+
+    .risk-rule.critical {
+      border-color: var(--red)
+    }
+
+    .risk-rule.high {
+      border-color: var(--yellow)
+    }
+
+    .risk-rule.medium {
+      border-color: var(--blue)
+    }
+
+    .risk-rule.low {
+      border-color: var(--muted)
+    }
+
+    .rule-pts {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--red)
+    }
+
+    /* WHOIS panel */
+    #whois-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px;
+      display: none;
+      margin-top: 16px;
+    }
+
+    .whois-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px
+    }
+
+    .whois-item {
+      background: var(--panel);
+      padding: 10px 14px;
+      border-radius: 8px
+    }
+
+    .whois-k {
+      font-size: .7rem;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase
+    }
+
+    .whois-v {
+      font-size: .88rem;
+      font-weight: 600;
+      margin-top: 3px
+    }
+
+    /* Recent history on dashboard */
+    #dash-history {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px;
+    }
+
+    .hist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .8rem;
+    }
+
+    .hist-item:last-child {
+      border-bottom: none
+    }
+
+    .hist-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .hist-dot.phishing {
+      background: var(--red)
+    }
+
+    .hist-dot.safe {
+      background: var(--green)
+    }
+
+    .hist-url {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: .72rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted2)
+    }
+
+    .hist-time {
+      color: var(--muted);
+      font-size: .7rem;
+      font-family: var(--font-mono)
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 2 — BATCH SCAN
 ═══════════════════════════════════════════════════════════════════════════ */
-.batch-textarea{
-  width:100%;height:160px;resize:vertical;
-  background:var(--panel);color:var(--text);
-  border:1px solid var(--border);border-radius:8px;
-  padding:12px 14px;font-size:.82rem;font-family:var(--font-mono);
-  outline:none;transition:border-color .2s;
-}
-.batch-textarea:focus{border-color:var(--teal)}
-.batch-textarea::placeholder{color:var(--muted)}
+    .batch-textarea {
+      width: 100%;
+      height: 160px;
+      resize: vertical;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: .82rem;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: border-color .2s;
+    }
 
-#batch-summary{
-  display:none;padding:14px 18px;border-radius:8px;margin-top:16px;
-  background:var(--card2);border:1px solid var(--border);
-  align-items:center;gap:24px;flex-wrap:wrap;
-}
-.sum-item{display:flex;align-items:center;gap:8px;font-size:.88rem}
-.sum-num{font-family:var(--font-head);font-size:1.4rem;font-weight:700}
+    .batch-textarea:focus {
+      border-color: var(--teal)
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .batch-textarea::placeholder {
+      color: var(--muted)
+    }
+
+    #batch-summary {
+      display: none;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-top: 16px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .sum-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .88rem
+    }
+
+    .sum-num {
+      font-family: var(--font-head);
+      font-size: 1.4rem;
+      font-weight: 700
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 3 — HISTORY
 ═══════════════════════════════════════════════════════════════════════════ */
-.hist-controls{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-#hist-search{max-width:280px}
-#history-table-wrap{overflow-x:auto}
-#history-table .url-cell{
-  font-family:var(--font-mono);font-size:.75rem;
-  max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
+    .hist-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    #hist-search {
+      max-width: 280px
+    }
+
+    #history-table-wrap {
+      overflow-x: auto
+    }
+
+    #history-table .url-cell {
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 4 — STATISTICS
 ═══════════════════════════════════════════════════════════════════════════ */
-.chart-card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:20px 22px;
-}
-.chart-wrap{
-  position:relative;
-  height:240px;
-  max-height:240px;
-  overflow:hidden;
-}
-.chart-wrap canvas{
-  display:block;
-  width:100%!important;
-  height:100%!important;
-  max-height:240px;
-}
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px 22px;
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .chart-wrap {
+      position: relative;
+      height: 240px;
+      max-height: 240px;
+      overflow: hidden;
+    }
+
+    .chart-wrap canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 240px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 5 — MODEL LAB
 ═══════════════════════════════════════════════════════════════════════════ */
-.algo-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
-.algo-card{
-  background:var(--panel);border:1px solid var(--border);
-  border-radius:var(--r);padding:14px 16px;
-  transition:border-color .22s ease,transform .22s ease;
-}
-.algo-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.algo-name{font-family:var(--font-head);font-size:.88rem;font-weight:600;margin-bottom:4px}
-.algo-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
-.algo-acc{
-  font-family:var(--font-mono);font-size:1.1rem;font-weight:600;
-  color:var(--teal);margin-top:8px;
-}
+    .algo-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px
+    }
 
-.compare-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
-.compare-row:last-child{border-bottom:none}
-.compare-name{width:180px;font-size:.85rem;flex-shrink:0}
-.compare-bar-wrap{flex:1;background:var(--panel);border-radius:20px;height:8px;overflow:hidden}
-.compare-bar{height:100%;border-radius:20px;transition:width 1s cubic-bezier(.22,1,.36,1)}
-.compare-pct{width:60px;text-align:right;font-family:var(--font-mono);font-size:.82rem;font-weight:600}
-.compare-badge{width:100px}
+    .algo-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      transition: border-color .22s ease, transform .22s ease;
+    }
 
-/* Majority vote */
-.vote-banner{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 20px;border-radius:10px;margin-top:16px;
-  border:1px solid;
-}
-.vote-banner.phishing{background:var(--red-dim);border-color:var(--red)}
-.vote-banner.safe{background:var(--green-dim);border-color:var(--green)}
-.vote-text{font-family:var(--font-head);font-size:1rem;font-weight:600}
-.vote-count{font-size:.82rem;color:var(--muted2)}
+    .algo-card:hover {
+      border-color: var(--border2);
+      transform: translateY(-1px)
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .algo-name {
+      font-family: var(--font-head);
+      font-size: .88rem;
+      font-weight: 600;
+      margin-bottom: 4px
+    }
+
+    .algo-desc {
+      font-size: .75rem;
+      color: var(--muted);
+      line-height: 1.5
+    }
+
+    .algo-acc {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--teal);
+      margin-top: 8px;
+    }
+
+    .compare-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .compare-row:last-child {
+      border-bottom: none
+    }
+
+    .compare-name {
+      width: 180px;
+      font-size: .85rem;
+      flex-shrink: 0
+    }
+
+    .compare-bar-wrap {
+      flex: 1;
+      background: var(--panel);
+      border-radius: 20px;
+      height: 8px;
+      overflow: hidden
+    }
+
+    .compare-bar {
+      height: 100%;
+      border-radius: 20px;
+      transition: width 1s cubic-bezier(.22, 1, .36, 1)
+    }
+
+    .compare-pct {
+      width: 60px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      font-weight: 600
+    }
+
+    .compare-badge {
+      width: 100px
+    }
+
+    /* Majority vote */
+    .vote-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-radius: 10px;
+      margin-top: 16px;
+      border: 1px solid;
+    }
+
+    .vote-banner.phishing {
+      background: var(--red-dim);
+      border-color: var(--red)
+    }
+
+    .vote-banner.safe {
+      background: var(--green-dim);
+      border-color: var(--green)
+    }
+
+    .vote-text {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 600
+    }
+
+    .vote-count {
+      font-size: .82rem;
+      color: var(--muted2)
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 6 — VISUALIZATIONS
 ═══════════════════════════════════════════════════════════════════════════ */
-.viz-grid{
-  display:grid;
-  grid-template-columns:1.05fr .95fr;
-  gap:18px 22px;
-}
-.viz-card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:18px 20px 20px;
-  transition:border-color .22s ease;
-}
-.viz-card:hover{border-color:var(--border2)}
-.viz-card:nth-child(odd){margin-top:2px}
-.viz-card .chart-wrap{height:260px;max-height:260px}
-.viz-card .chart-wrap canvas{max-height:260px}
-.viz-title{
-  font-family:var(--font-head);font-size:.8rem;font-weight:600;
-  text-transform:uppercase;letter-spacing:.4px;color:var(--muted2);
-  margin-bottom:14px;
-}
-.cm-note{font-size:.76rem;color:var(--muted);text-align:center;line-height:1.5;margin-bottom:8px}
-.no-data-msg{
-  text-align:center;padding:40px 20px;color:var(--muted);font-size:.85rem;
-}
-.no-data-msg code{color:var(--teal);font-family:var(--font-mono)}
+    .viz-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 18px 22px;
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .viz-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px 20px 20px;
+      transition: border-color .22s ease;
+    }
+
+    .viz-card:hover {
+      border-color: var(--border2)
+    }
+
+    .viz-card:nth-child(odd) {
+      margin-top: 2px
+    }
+
+    .viz-card .chart-wrap {
+      height: 260px;
+      max-height: 260px
+    }
+
+    .viz-card .chart-wrap canvas {
+      max-height: 260px
+    }
+
+    .viz-title {
+      font-family: var(--font-head);
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--muted2);
+      margin-bottom: 14px;
+    }
+
+    .cm-note {
+      font-size: .76rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 8px
+    }
+
+    .no-data-msg {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    .no-data-msg code {
+      color: var(--teal);
+      font-family: var(--font-mono)
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    SECTION 7 — RISK ANALYZER
 ═══════════════════════════════════════════════════════════════════════════ */
-.risk-level-display{
-  font-family:var(--font-head);font-size:3rem;font-weight:800;
-  text-align:center;margin:16px 0 8px;
-}
-.risk-score-num{
-  font-family:var(--font-mono);font-size:1.2rem;text-align:center;
-  margin-bottom:16px;
-}
-.risk-gauge{
-  width:100%;height:16px;border-radius:20px;
-  background:linear-gradient(90deg,var(--green) 0%,var(--yellow) 40%,var(--red) 75%,#c0392b 100%);
-  position:relative;margin-bottom:10px;
-}
-.risk-needle{
-  position:absolute;top:-4px;
-  width:24px;height:24px;border-radius:50%;
-  background:var(--text);border:3px solid var(--bg);
-  transform:translateX(-50%);transition:left 1s cubic-bezier(.22,1,.36,1);
-  box-shadow:0 2px 8px rgba(0,0,0,.5);
-}
+    .risk-level-display {
+      font-family: var(--font-head);
+      font-size: 3rem;
+      font-weight: 800;
+      text-align: center;
+      margin: 16px 0 8px;
+    }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+    .risk-score-num {
+      font-family: var(--font-mono);
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .risk-gauge {
+      width: 100%;
+      height: 16px;
+      border-radius: 20px;
+      background: linear-gradient(90deg, var(--green) 0%, var(--yellow) 40%, var(--red) 75%, #c0392b 100%);
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .risk-needle {
+      position: absolute;
+      top: -4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--text);
+      border: 3px solid var(--bg);
+      transform: translateX(-50%);
+      transition: left 1s cubic-bezier(.22, 1, .36, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════════════════ */
-@media(max-width:1200px){
-  .grid-4{grid-template-columns:1fr 1fr}
-  .algo-cards{grid-template-columns:1fr 1fr}
-  #dash-layout{grid-template-columns:1fr}
-  .viz-grid{grid-template-columns:1fr}
-}
-@media(max-width:900px){
-  :root{--sidebar:60px}
-  .logo-text,.logo-sub,.nav-item span,.nav-label{display:none}
-  .nav-item{justify-content:center;padding:12px}
-  .nav-icon{width:auto}
-  .section{padding:16px}
-  .grid-2,.grid-3{grid-template-columns:1fr}
-  .algo-cards{grid-template-columns:1fr}
-}
+    @media(max-width:1200px) {
+      .grid-4 {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .algo-cards {
+        grid-template-columns: 1fr 1fr
+      }
+
+      #dash-layout {
+        grid-template-columns: 1fr
+      }
+
+      .viz-grid {
+        grid-template-columns: 1fr
+      }
+    }
+
+    @media(max-width:900px) {
+      :root {
+        --sidebar: 60px
+      }
+
+      .logo-text,
+      .logo-sub,
+      .nav-item span,
+      .nav-label {
+        display: none
+      }
+
+      .nav-item {
+        justify-content: center;
+        padding: 12px
+      }
+
+      .nav-icon {
+        width: auto
+      }
+
+      .section {
+        padding: 16px
+      }
+
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr
+      }
+
+      .algo-cards {
+        grid-template-columns: 1fr
+      }
+    }
   </style>
 </head>
+
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════════════════════════════
      SIDEBAR NAVIGATION
 ════════════════════════════════════════════════════════════════════════ -->
-<nav id="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-icon">🛡️</div>
-    <div>
-      <div class="logo-text">SafeWeb</div>
-      <div class="logo-sub">v2.0 · ML SUITE</div>
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🛡️</div>
+      <div>
+        <div class="logo-text">SafeWeb</div>
+        <div class="logo-sub">v2.0 · ML SUITE</div>
+      </div>
     </div>
-  </div>
 
-  <div class="nav-group">
-    <div class="nav-label">Main</div>
-    <div class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
-      <span class="nav-icon">📡</span><span>Dashboard</span>
+    <div class="nav-group">
+      <div class="nav-label">Main</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">📡</span><span>Dashboard</span>
+      </div>
+      <div class="nav-item" id="nav-history" onclick="navigate('history')">
+        <span class="nav-icon">🕐</span><span>Scan History</span>
+      </div>
     </div>
-    <div class="nav-item" id="nav-batch" onclick="navigate('batch')">
-      <span class="nav-icon">⚡</span><span>Batch Scan</span>
-    </div>
-    <div class="nav-item" id="nav-history" onclick="navigate('history')">
-      <span class="nav-icon">🕐</span><span>Scan History</span>
-    </div>
-  </div>
 
-  <div class="nav-group">
-    <div class="nav-label">Analytics</div>
-    <div class="nav-item" id="nav-statistics" onclick="navigate('statistics')">
-      <span class="nav-icon">📊</span><span>Live Statistics</span>
+    <div class="nav-group">
+      <div class="nav-label">Analytics</div>
+      <div class="nav-item" id="nav-statistics" onclick="navigate('statistics')">
+        <span class="nav-icon">📊</span><span>Live Statistics</span>
+      </div>
+      <div class="nav-item" id="nav-modellab" onclick="navigate('modellab')">
+        <span class="nav-icon">🔬</span><span>Model Lab</span>
+      </div>
+      <div class="nav-item" id="nav-visualizations" onclick="navigate('visualizations')">
+        <span class="nav-icon">📈</span><span>Visualizations</span>
+      </div>
     </div>
-    <div class="nav-item" id="nav-modellab" onclick="navigate('modellab')">
-      <span class="nav-icon">🔬</span><span>Model Lab</span>
-    </div>
-    <div class="nav-item" id="nav-visualizations" onclick="navigate('visualizations')">
-      <span class="nav-icon">📈</span><span>Visualizations</span>
-    </div>
-  </div>
 
-  <div class="nav-group">
-    <div class="nav-label">Tools</div>
-    <div class="nav-item" id="nav-risk" onclick="navigate('risk')">
-      <span class="nav-icon">⚠️</span><span>Risk Analyzer</span>
+    <div class="nav-group">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item" id="nav-risk" onclick="navigate('risk')">
+        <span class="nav-icon">⚠️</span><span>Risk Analyzer</span>
+      </div>
     </div>
-  </div>
 
-  <div class="sidebar-footer">
-    <div>SafeWeb ML Suite</div>
-    <div>Flask · scikit-learn</div>
-    <div id="server-status" style="color:var(--muted)">● Connecting…</div>
-  </div>
-</nav>
+    <div class="sidebar-footer">
+      <div>SafeWeb ML Suite</div>
+      <div>Flask · scikit-learn</div>
+      <div id="server-status" style="color:var(--muted)">● Connecting…</div>
+    </div>
+  </nav>
 
-<!-- ═══════════════════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════════════════════════════
      MAIN CONTENT
 ════════════════════════════════════════════════════════════════════════ -->
-<main id="main">
+  <main id="main">
 
-<!-- ─────────────────────────────────── SECTION: DASHBOARD ─── -->
-<section class="section active" id="section-dashboard">
-  <div class="page-header">
-    <div class="page-title">Phishing <span>Detection</span> Dashboard</div>
-    <div class="page-sub">ML-powered URL analysis · Real-time threat intelligence</div>
-  </div>
-
-  <div id="dash-layout">
-    <!-- LEFT: scan + results -->
-    <div>
-      <div id="scan-card">
-        <div class="scan-header">
-          <div class="shield">🛡️</div>
-          <div>
-            <div class="scan-title">URL Scanner</div>
-            <div class="scan-sub">Paste any URL for instant ML analysis</div>
-          </div>
-        </div>
-
-        <div class="input-row">
-          <input class="inp" id="dash-url" type="text" placeholder="https://example.com" spellcheck="false" autocomplete="off"/>
-          <button class="btn btn-primary" id="dash-scan-btn" onclick="dashScan()">
-            <div class="spinner" id="dash-spinner"></div>
-            <span id="dash-btn-text">SCAN</span>
-          </button>
-        </div>
-        <div id="scan-error"></div>
-
-        <!-- RESULT -->
-        <div id="result-area">
-          <div class="result-top" id="result-top">
-            <div class="result-icon-big" id="result-icon"></div>
-            <div class="result-info">
-              <div class="result-verdict" id="result-verdict"></div>
-              <div class="result-urltext" id="result-urltext"></div>
-            </div>
-          </div>
-
-          <!-- Feature breakdown -->
-          <div id="feature-panel">
-            <div class="feat-title">🔍 Feature Breakdown</div>
-            <div id="feat-rows"></div>
-          </div>
-
-          <!-- Risk explanation -->
-          <div id="risk-panel">
-            <div class="feat-title">⚠️ Risk Score Breakdown</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-              <span id="risk-level-badge" class="badge"></span>
-              <span id="risk-score-label" style="font-family:var(--font-mono);font-size:1rem;font-weight:700"></span>
-            </div>
-            <div class="risk-bar-track"><div class="risk-bar-fill" id="risk-bar" style="width:0%"></div></div>
-            <div class="risk-rules" id="risk-rules-list"></div>
-          </div>
-
-          <!-- WHOIS -->
-          <div id="whois-panel">
-            <div class="feat-title">🌐 Domain Information (WHOIS)</div>
-            <div id="whois-content"></div>
-          </div>
-
-          <button class="btn btn-ghost" style="width:100%;margin-top:14px;justify-content:center" onclick="resetDash()">↩ Scan Another URL</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: ring + recent history -->
-    <div style="display:flex;flex-direction:column;gap:16px">
-      <div id="ring-panel">
-        <div class="card-title"><span class="dot"></span>Confidence</div>
-        <div class="ring-wrap">
-          <svg viewBox="0 0 130 130">
-            <circle id="ring-track" cx="65" cy="65" r="60"/>
-            <circle id="ring-fill" cx="65" cy="65" r="60"/>
-          </svg>
-          <div class="ring-center">
-            <div class="ring-pct" id="ring-pct">—</div>
-            <div class="ring-lab">confidence</div>
-          </div>
-        </div>
-        <div class="ring-label" id="ring-label" style="text-align:center;color:var(--muted)">Scan a URL to start</div>
+    <!-- ─────────────────────────────────── SECTION: DASHBOARD ─── -->
+    <section class="section active" id="section-dashboard">
+      <div class="page-header">
+        <div class="page-title">Phishing <span>Detection</span> Dashboard</div>
+        <div class="page-sub">ML-powered URL analysis · Real-time threat intelligence</div>
       </div>
 
-      <div id="dash-history">
-        <div class="card-title"><span class="dot"></span>Recent Scans</div>
-        <div id="dash-hist-list">
-          <div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">No scans yet</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ─────────────────────────────────── SECTION: BATCH SCAN ─── -->
-<section class="section" id="section-batch">
-  <div class="page-header">
-    <div class="page-title">Batch <span>URL</span> Scanner</div>
-    <div class="page-sub">Paste up to 50 URLs (one per line) for bulk analysis</div>
-  </div>
-
-  <div class="card">
-    <div class="card-title"><span class="dot"></span>Input URLs</div>
-    <textarea class="batch-textarea" id="batch-input"
-      placeholder="https://google.com&#10;http://suspicious-site.xyz/login&#10;https://github.com"></textarea>
-    <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
-      <button class="btn btn-primary" id="batch-btn" onclick="runBatch()">
-        <div class="spinner" id="batch-spinner"></div>
-        <span id="batch-btn-text">⚡ SCAN ALL URLS</span>
-      </button>
-      <button class="btn btn-ghost" onclick="document.getElementById('batch-input').value=''">Clear</button>
-      <span id="url-count" style="color:var(--muted);font-size:.8rem;margin-left:auto"></span>
-    </div>
-  </div>
-
-  <!-- Summary -->
-  <div id="batch-summary" class="mt-16" style="display:none">
-    <div class="sum-item">
-      <div>
-        <div class="sum-num" id="batch-total" style="color:var(--teal)">0</div>
-        <div class="stat-label">Total Scanned</div>
-      </div>
-    </div>
-    <div class="sum-item">
-      <div>
-        <div class="sum-num" id="batch-phishing-count" style="color:var(--red)">0</div>
-        <div class="stat-label">Phishing Found</div>
-      </div>
-    </div>
-    <div class="sum-item">
-      <div>
-        <div class="sum-num" id="batch-safe-count" style="color:var(--green)">0</div>
-        <div class="stat-label">Safe URLs</div>
-      </div>
-    </div>
-    <button class="btn btn-ghost" style="margin-left:auto" onclick="exportBatchCSV()">📥 Export CSV</button>
-  </div>
-
-  <!-- Results table -->
-  <div class="card mt-16" id="batch-results-wrap" style="display:none">
-    <div class="card-title"><span class="dot"></span>Results</div>
-    <div style="overflow-x:auto">
-      <table class="tbl" id="batch-tbl">
-        <thead>
-          <tr>
-            <th>#</th><th>URL</th><th>Prediction</th>
-            <th>Confidence</th><th>Risk Level</th>
-          </tr>
-        </thead>
-        <tbody id="batch-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<!-- ─────────────────────────────────── SECTION: HISTORY ─── -->
-<section class="section" id="section-history">
-  <div class="page-header">
-    <div class="page-title">Scan <span>History</span></div>
-    <div class="page-sub">All URLs scanned this session</div>
-  </div>
-
-  <div class="card">
-    <div class="hist-controls">
-      <input class="inp" id="hist-search" placeholder="🔍 Search URLs…" oninput="renderHistory()"/>
-      <button class="btn btn-primary" onclick="exportHistoryCSV()">📥 Export CSV</button>
-      <button class="btn btn-danger" onclick="clearHistory()">🗑 Clear History</button>
-    </div>
-    <div id="history-table-wrap">
-      <table class="tbl" id="history-table">
-        <thead>
-          <tr>
-            <th>#</th><th>URL</th><th>Prediction</th>
-            <th>Confidence</th><th>Risk</th><th>Time</th>
-          </tr>
-        </thead>
-        <tbody id="history-tbody"></tbody>
-      </table>
-      <div id="history-empty" style="text-align:center;padding:32px;color:var(--muted)">
-        No scans recorded yet.
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ─────────────────────────────────── SECTION: STATISTICS ─── -->
-<section class="section" id="section-statistics">
-  <div class="page-header">
-    <div class="page-title">Live <span>Statistics</span></div>
-    <div class="page-sub">Session metrics · Auto-refreshes every 10 seconds</div>
-  </div>
-
-  <!-- Counter cards -->
-  <div class="grid-4">
-    <div class="stat-card teal">
-      <div class="stat-label">Total Scans</div>
-      <div class="stat-value" id="stat-total">0</div>
-      <div class="stat-sub">this session</div>
-    </div>
-    <div class="stat-card red">
-      <div class="stat-label">Phishing Detected</div>
-      <div class="stat-value" id="stat-phishing">0</div>
-      <div class="stat-sub">malicious URLs</div>
-    </div>
-    <div class="stat-card green">
-      <div class="stat-label">Safe URLs</div>
-      <div class="stat-value" id="stat-safe">0</div>
-      <div class="stat-sub">legitimate URLs</div>
-    </div>
-    <div class="stat-card yellow">
-      <div class="stat-label">Phishing Rate</div>
-      <div class="stat-value" id="stat-pct">0%</div>
-      <div class="stat-sub">of all scans</div>
-    </div>
-  </div>
-
-  <div class="grid-2 mt-16">
-    <div class="chart-card">
-      <div class="card-title"><span class="dot"></span>Distribution</div>
-      <div class="chart-wrap">
-        <canvas id="donut-chart"></canvas>
-      </div>
-    </div>
-    <div class="chart-card">
-      <div class="card-title"><span class="dot"></span>Confidence Range Distribution</div>
-      <div class="chart-wrap">
-        <canvas id="conf-chart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div class="card mt-16">
-    <div class="card-title"><span class="dot"></span>Recent Activity Feed</div>
-    <div id="activity-feed" style="max-height:260px;overflow-y:auto"></div>
-  </div>
-</section>
-
-<!-- ─────────────────────────────────── SECTION: MODEL LAB ─── -->
-<section class="section" id="section-modellab">
-  <div class="page-header">
-    <div class="page-title">Classification <span>Model Lab</span></div>
-    <div class="page-sub">6 algorithms · Compare predictions side-by-side</div>
-  </div>
-
-  <!-- Algorithm info cards -->
-  <div class="algo-cards">
-    <div class="algo-card">
-      <div class="algo-name">🟣 K-Nearest Neighbor</div>
-      <div class="algo-desc">Classifies by finding the K closest training examples. Simple and interpretable — great for non-linear boundaries.</div>
-      <div class="algo-acc" id="acc-knn">—</div>
-    </div>
-    <div class="algo-card">
-      <div class="algo-name">🌳 Decision Tree</div>
-      <div class="algo-desc">Splits features into decision rules. Highly explainable — you can trace the exact path for any prediction.</div>
-      <div class="algo-acc" id="acc-dt">—</div>
-    </div>
-    <div class="algo-card">
-      <div class="algo-name">📈 Logistic Regression</div>
-      <div class="algo-desc">Linear classifier using sigmoid function. Fast, interpretable, and excellent baseline for binary classification.</div>
-      <div class="algo-acc" id="acc-lr">—</div>
-    </div>
-    <div class="algo-card">
-      <div class="algo-name">🔔 Naive Bayes</div>
-      <div class="algo-desc">Probabilistic classifier based on Bayes' theorem. Assumes feature independence — very fast training and prediction.</div>
-      <div class="algo-acc" id="acc-nb">—</div>
-    </div>
-    <div class="algo-card">
-      <div class="algo-name">🌲 Random Forest</div>
-      <div class="algo-desc">Ensemble of Decision Trees trained on random subsets. High accuracy and resistant to overfitting via bagging.</div>
-      <div class="algo-acc" id="acc-rf">—</div>
-    </div>
-    <div class="algo-card">
-      <div class="algo-name">🚀 XGBoost / Gradient Boosting</div>
-      <div class="algo-desc">Sequential ensemble that corrects previous errors. State-of-the-art performance on tabular data.</div>
-      <div class="algo-acc" id="acc-xgb">—</div>
-    </div>
-  </div>
-
-  <!-- Compare a URL -->
-  <div class="card">
-    <div class="card-title"><span class="dot"></span>Live Model Comparison</div>
-    <div id="models-not-ready" style="display:none;padding:12px;background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:8px;margin-bottom:14px;font-size:.83rem;color:var(--yellow)">
-      ⚠️ Trained models not found. Run <code style="background:var(--panel);padding:1px 6px;border-radius:4px">python train_all_models.py</code> first to enable this feature.
-    </div>
-    <div class="input-row">
-      <input class="inp" id="compare-url" type="text" placeholder="https://example.com" spellcheck="false"/>
-      <button class="btn btn-primary" id="compare-btn" onclick="runCompare()">
-        <div class="spinner" id="compare-spinner"></div>
-        <span id="compare-btn-text">COMPARE</span>
-      </button>
-    </div>
-
-    <div id="compare-results" style="display:none;margin-top:20px">
-      <div id="compare-rows"></div>
-      <div id="vote-banner" class="vote-banner" style="display:none">
+      <div id="dash-layout">
+        <!-- LEFT: scan + results -->
         <div>
-          <div class="vote-text" id="vote-text"></div>
-          <div class="vote-count" id="vote-count"></div>
-        </div>
-        <div style="font-size:1.8rem" id="vote-icon"></div>
-      </div>
-    </div>
-  </div>
-</section>
+          <div id="scan-card">
+            <div class="scan-header">
+              <div class="shield">🛡️</div>
+              <div>
+                <div class="scan-title">URL Scanner</div>
+                <div class="scan-sub">Paste any URL for instant ML analysis</div>
+              </div>
+            </div>
 
-<!-- ─────────────────────────────────── SECTION: VISUALIZATIONS ─── -->
-<section class="section" id="section-visualizations">
-  <div class="page-header">
-    <div class="page-title">Data <span>Visualizations</span></div>
-    <div class="page-sub">Feature analysis · Model performance · Classification metrics</div>
-  </div>
+            <div class="input-row">
+              <input class="inp" id="dash-url" type="text" placeholder="https://example.com" spellcheck="false"
+                autocomplete="off" />
+              <button class="btn btn-primary" id="dash-scan-btn" onclick="dashScan()">
+                <div class="spinner" id="dash-spinner"></div>
+                <span id="dash-btn-text">SCAN</span>
+              </button>
+            </div>
+            <div id="scan-error"></div>
 
-  <div class="viz-grid">
-    <div class="viz-card">
-      <div class="viz-title">📊 Feature: Phishing vs Legitimate (Avg Values)</div>
-      <div class="chart-wrap"><canvas id="feature-dist-chart"></canvas></div>
-    </div>
-    <div class="viz-card">
-      <div class="viz-title">🏆 Algorithm Accuracy Comparison</div>
-      <div id="viz-no-data" class="no-data-msg" style="display:none">
-        Run <code>python train_all_models.py</code> to see model metrics
-      </div>
-      <div class="chart-wrap"><canvas id="algo-acc-chart"></canvas></div>
-    </div>
-    <div class="viz-card">
-      <div class="viz-title">🎯 Feature Importance (Decision Tree / Random Forest)</div>
-      <div id="viz-no-fi" class="no-data-msg" style="display:none">
-        Run <code>python train_all_models.py</code> to see feature importance
-      </div>
-      <div class="chart-wrap"><canvas id="feat-imp-chart"></canvas></div>
-    </div>
-    <div class="viz-card">
-      <div class="viz-title">🔷 Metrics Radar — All Algorithms</div>
-      <div id="viz-no-radar" class="no-data-msg" style="display:none">
-        Run <code>python train_all_models.py</code> to see metrics radar
-      </div>
-      <div class="chart-wrap"><canvas id="radar-chart"></canvas></div>
-    </div>
-    <div class="viz-card">
-      <div class="viz-title">⬜ Confusion Matrix — Production Model</div>
-      <div id="cm-display" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;gap:10px">
-        <div id="cm-note" class="cm-note">Test-set evaluation from trained model metrics</div>
-        <div id="cm-grid" style="display:none;gap:4px">
-          <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;text-align:center">
-            <div></div>
-            <div style="font-size:.72rem;color:var(--muted);padding:4px">Predicted<br>Phishing</div>
-            <div style="font-size:.72rem;color:var(--muted);padding:4px">Predicted<br>Legit</div>
-            <div style="font-size:.72rem;color:var(--muted);padding:4px;text-align:right">Actual<br>Phishing</div>
-            <div class="cm-cell" id="cm-tp" style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--green)">0</div>
-            <div class="cm-cell" id="cm-fn" style="background:var(--red-dim);border:1px solid var(--red);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--red)">0</div>
-            <div style="font-size:.72rem;color:var(--muted);padding:4px;text-align:right">Actual<br>Legit</div>
-            <div class="cm-cell" id="cm-fp" style="background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--yellow)">0</div>
-            <div class="cm-cell" id="cm-tn" style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--green)">0</div>
+            <!-- RESULT -->
+            <div id="result-area">
+              <div class="result-top" id="result-top">
+                <div class="result-icon-big" id="result-icon"></div>
+                <div class="result-info">
+                  <div class="result-verdict" id="result-verdict"></div>
+                  <div class="result-urltext" id="result-urltext"></div>
+                </div>
+              </div>
+
+              <!-- Feature breakdown -->
+              <div id="feature-panel">
+                <div class="feat-title">🔍 Feature Breakdown</div>
+                <div id="feat-rows"></div>
+              </div>
+
+              <!-- Risk explanation -->
+              <div id="risk-panel">
+                <div class="feat-title">⚠️ Risk Score Breakdown</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                  <span id="risk-level-badge" class="badge"></span>
+                  <span id="risk-score-label"
+                    style="font-family:var(--font-mono);font-size:1rem;font-weight:700"></span>
+                </div>
+                <div class="risk-bar-track">
+                  <div class="risk-bar-fill" id="risk-bar" style="width:0%"></div>
+                </div>
+                <div class="risk-rules" id="risk-rules-list"></div>
+              </div>
+
+              <!-- WHOIS -->
+              <div id="whois-panel">
+                <div class="feat-title">🌐 Domain Information (WHOIS)</div>
+                <div id="whois-content"></div>
+              </div>
+
+              <button class="btn btn-ghost" style="width:100%;margin-top:14px;justify-content:center"
+                onclick="resetDash()">↩ Scan Another URL</button>
+            </div>
           </div>
         </div>
-        <div id="cm-unavailable" class="no-data-msg" style="display:none;padding:20px">
-          Run <code>python train_all_models.py</code> to load test-set confusion matrix
+
+        <!-- RIGHT: ring + recent history -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div id="ring-panel">
+            <div class="card-title"><span class="dot"></span>Confidence</div>
+            <div class="ring-wrap">
+              <svg viewBox="0 0 130 130">
+                <circle id="ring-track" cx="65" cy="65" r="60" />
+                <circle id="ring-fill" cx="65" cy="65" r="60" />
+              </svg>
+              <div class="ring-center">
+                <div class="ring-pct" id="ring-pct">—</div>
+                <div class="ring-lab">confidence</div>
+              </div>
+            </div>
+            <div class="ring-label" id="ring-label" style="text-align:center;color:var(--muted)">Scan a URL to start
+            </div>
+          </div>
+
+          <div id="dash-history">
+            <div class="card-title"><span class="dot"></span>Recent Scans</div>
+            <div id="dash-hist-list">
+              <div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">No scans yet</div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="viz-card">
-      <div class="viz-title">📉 Session Prediction Distribution</div>
-      <div class="chart-wrap"><canvas id="session-dist-chart"></canvas></div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ─────────────────────────────────── SECTION: RISK ANALYZER ─── -->
-<section class="section" id="section-risk">
-  <div class="page-header">
-    <div class="page-title">URL <span>Risk</span> Analyzer</div>
-    <div class="page-sub">Rule-based risk scoring independent of the ML model</div>
-  </div>
+    <!-- ─────────────────────────────────── SECTION: HISTORY ─── -->
+    <section class="section" id="section-history">
+      <div class="page-header">
+        <div class="page-title">Scan <span>History</span></div>
+        <div class="page-sub">All URLs scanned this session</div>
+      </div>
 
-  <div class="grid-2" style="align-items:start">
-    <div>
       <div class="card">
-        <div class="card-title"><span class="dot"></span>Analyze URL Risk</div>
+        <div class="hist-controls">
+          <input class="inp" id="hist-search" placeholder="🔍 Search URLs…" oninput="renderHistory()" />
+          <button class="btn btn-primary" onclick="exportHistoryCSV()">📥 Export CSV</button>
+          <button class="btn btn-danger" onclick="clearHistory()">🗑 Clear History</button>
+        </div>
+        <div id="history-table-wrap">
+          <table class="tbl" id="history-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>URL</th>
+                <th>Prediction</th>
+                <th>Confidence</th>
+                <th>Risk</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+          <div id="history-empty" style="text-align:center;padding:32px;color:var(--muted)">
+            No scans recorded yet.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────── SECTION: STATISTICS ─── -->
+    <section class="section" id="section-statistics">
+      <div class="page-header">
+        <div class="page-title">Live <span>Statistics</span></div>
+        <div class="page-sub">Session metrics · Auto-refreshes every 10 seconds</div>
+      </div>
+
+      <!-- Counter cards -->
+      <div class="grid-4">
+        <div class="stat-card teal">
+          <div class="stat-label">Total Scans</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-sub">this session</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Phishing Detected</div>
+          <div class="stat-value" id="stat-phishing">0</div>
+          <div class="stat-sub">malicious URLs</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Safe URLs</div>
+          <div class="stat-value" id="stat-safe">0</div>
+          <div class="stat-sub">legitimate URLs</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Phishing Rate</div>
+          <div class="stat-value" id="stat-pct">0%</div>
+          <div class="stat-sub">of all scans</div>
+        </div>
+      </div>
+
+      <div class="grid-2 mt-16">
+        <div class="chart-card">
+          <div class="card-title"><span class="dot"></span>Distribution</div>
+          <div class="chart-wrap">
+            <canvas id="donut-chart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="card-title"><span class="dot"></span>Confidence Range Distribution</div>
+          <div class="chart-wrap">
+            <canvas id="conf-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-16">
+        <div class="card-title"><span class="dot"></span>Recent Activity Feed</div>
+        <div id="activity-feed" style="max-height:260px;overflow-y:auto"></div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────── SECTION: MODEL LAB ─── -->
+    <section class="section" id="section-modellab">
+      <div class="page-header">
+        <div class="page-title">Classification <span>Model Lab</span></div>
+        <div class="page-sub">6 algorithms · Compare predictions side-by-side</div>
+      </div>
+
+      <!-- Algorithm info cards -->
+      <div class="algo-cards">
+        <div class="algo-card">
+          <div class="algo-name">🟣 K-Nearest Neighbor</div>
+          <div class="algo-desc">Classifies by finding the K closest training examples. Simple and interpretable — great
+            for non-linear boundaries.</div>
+          <div class="algo-acc" id="acc-knn">—</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-name">🌳 Decision Tree</div>
+          <div class="algo-desc">Splits features into decision rules. Highly explainable — you can trace the exact path
+            for any prediction.</div>
+          <div class="algo-acc" id="acc-dt">—</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-name">📈 Logistic Regression</div>
+          <div class="algo-desc">Linear classifier using sigmoid function. Fast, interpretable, and excellent baseline
+            for binary classification.</div>
+          <div class="algo-acc" id="acc-lr">—</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-name">🔔 Naive Bayes</div>
+          <div class="algo-desc">Probabilistic classifier based on Bayes' theorem. Assumes feature independence — very
+            fast training and prediction.</div>
+          <div class="algo-acc" id="acc-nb">—</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-name">🌲 Random Forest</div>
+          <div class="algo-desc">Ensemble of Decision Trees trained on random subsets. High accuracy and resistant to
+            overfitting via bagging.</div>
+          <div class="algo-acc" id="acc-rf">—</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-name">🚀 XGBoost / Gradient Boosting</div>
+          <div class="algo-desc">Sequential ensemble that corrects previous errors. State-of-the-art performance on
+            tabular data.</div>
+          <div class="algo-acc" id="acc-xgb">—</div>
+        </div>
+      </div>
+
+      <!-- Compare a URL -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Live Model Comparison</div>
+        <div id="models-not-ready"
+          style="display:none;padding:12px;background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:8px;margin-bottom:14px;font-size:.83rem;color:var(--yellow)">
+          ⚠️ Trained models not found. Run <code
+            style="background:var(--panel);padding:1px 6px;border-radius:4px">python train_all_models.py</code> first to
+          enable this feature.
+        </div>
         <div class="input-row">
-          <input class="inp" id="risk-url" type="text" placeholder="https://example.com" spellcheck="false"/>
-          <button class="btn btn-primary" id="risk-btn" onclick="runRiskScan()">
-            <div class="spinner" id="risk-spinner"></div>
-            <span id="risk-btn-text">ANALYZE</span>
+          <input class="inp" id="compare-url" type="text" placeholder="https://example.com" spellcheck="false" />
+          <button class="btn btn-primary" id="compare-btn" onclick="runCompare()">
+            <div class="spinner" id="compare-spinner"></div>
+            <span id="compare-btn-text">COMPARE</span>
           </button>
         </div>
-      </div>
 
-      <div class="card mt-16" id="risk-result-card" style="display:none">
-        <div class="card-title"><span class="dot"></span>Risk Assessment</div>
-        <div class="risk-level-display" id="risk-level-big"></div>
-        <div class="risk-score-num" id="risk-score-display"></div>
-        <div class="risk-gauge">
-          <div class="risk-needle" id="risk-needle" style="left:0%"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);font-family:var(--font-mono);margin-bottom:16px">
-          <span>LOW</span><span>MEDIUM</span><span>HIGH</span><span>CRITICAL</span>
-        </div>
-        <div class="risk-rules" id="risk-rules-detail"></div>
-        <div id="risk-ml-result" style="margin-top:16px;padding:12px;border-radius:8px;background:var(--panel);border:1px solid var(--border);display:none">
-          <div style="font-size:.72rem;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">ML Prediction</div>
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div id="risk-ml-label" style="font-family:var(--font-head);font-size:1rem;font-weight:600"></div>
-            <div id="risk-ml-conf" style="font-family:var(--font-mono)"></div>
+        <div id="compare-results" style="display:none;margin-top:20px">
+          <div id="compare-rows"></div>
+          <div id="vote-banner" class="vote-banner" style="display:none">
+            <div>
+              <div class="vote-text" id="vote-text"></div>
+              <div class="vote-count" id="vote-count"></div>
+            </div>
+            <div style="font-size:1.8rem" id="vote-icon"></div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="card">
-      <div class="card-title"><span class="dot"></span>Risk Scoring Rules</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div class="risk-rule critical">
-          <span>No HTTPS encryption</span><span class="rule-pts">+25 pts</span>
+    <!-- ─────────────────────────────────── SECTION: VISUALIZATIONS ─── -->
+    <section class="section" id="section-visualizations">
+      <div class="page-header">
+        <div class="page-title">Data <span>Visualizations</span></div>
+        <div class="page-sub">Feature analysis · Model performance · Classification metrics</div>
+      </div>
+
+      <div class="viz-grid">
+        <div class="viz-card">
+          <div class="viz-title">📊 Feature: Phishing vs Legitimate (Avg Values)</div>
+          <div class="chart-wrap"><canvas id="feature-dist-chart"></canvas></div>
         </div>
-        <div class="risk-rule critical">
-          <span>@ symbol in URL (credential trick)</span><span class="rule-pts">+20 pts</span>
+        <div class="viz-card">
+          <div class="viz-title">🏆 Algorithm Accuracy Comparison</div>
+          <div id="viz-no-data" class="no-data-msg" style="display:none">
+            Run <code>python train_all_models.py</code> to see model metrics
+          </div>
+          <div class="chart-wrap"><canvas id="algo-acc-chart"></canvas></div>
         </div>
-        <div class="risk-rule critical">
-          <span>IP address instead of domain</span><span class="rule-pts">+20 pts</span>
+        <div class="viz-card">
+          <div class="viz-title">🎯 Feature Importance (Decision Tree / Random Forest)</div>
+          <div id="viz-no-fi" class="no-data-msg" style="display:none">
+            Run <code>python train_all_models.py</code> to see feature importance
+          </div>
+          <div class="chart-wrap"><canvas id="feat-imp-chart"></canvas></div>
         </div>
-        <div class="risk-rule high">
-          <span>URL length > 100 characters</span><span class="rule-pts">+15 pts</span>
+        <div class="viz-card">
+          <div class="viz-title">🔷 Metrics Radar — All Algorithms</div>
+          <div id="viz-no-radar" class="no-data-msg" style="display:none">
+            Run <code>python train_all_models.py</code> to see metrics radar
+          </div>
+          <div class="chart-wrap"><canvas id="radar-chart"></canvas></div>
         </div>
-        <div class="risk-rule high">
-          <span>Domain length > 40 characters</span><span class="rule-pts">+10 pts</span>
+        <div class="viz-card">
+          <div class="viz-title">⬜ Confusion Matrix — Production Model</div>
+          <div id="cm-display" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;gap:10px">
+            <div id="cm-note" class="cm-note">Test-set evaluation from trained model metrics</div>
+            <div id="cm-grid" style="display:none;gap:4px">
+              <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;text-align:center">
+                <div></div>
+                <div style="font-size:.72rem;color:var(--muted);padding:4px">Predicted<br>Phishing</div>
+                <div style="font-size:.72rem;color:var(--muted);padding:4px">Predicted<br>Legit</div>
+                <div style="font-size:.72rem;color:var(--muted);padding:4px;text-align:right">Actual<br>Phishing</div>
+                <div class="cm-cell" id="cm-tp"
+                  style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--green)">
+                  0</div>
+                <div class="cm-cell" id="cm-fn"
+                  style="background:var(--red-dim);border:1px solid var(--red);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--red)">
+                  0</div>
+                <div style="font-size:.72rem;color:var(--muted);padding:4px;text-align:right">Actual<br>Legit</div>
+                <div class="cm-cell" id="cm-fp"
+                  style="background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--yellow)">
+                  0</div>
+                <div class="cm-cell" id="cm-tn"
+                  style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--green)">
+                  0</div>
+              </div>
+            </div>
+            <div id="cm-unavailable" class="no-data-msg" style="display:none;padding:20px">
+              Run <code>python train_all_models.py</code> to load test-set confusion matrix
+            </div>
+          </div>
         </div>
-        <div class="risk-rule high">
-          <span>Excessive dots (> 5)</span><span class="rule-pts">+10 pts</span>
-        </div>
-        <div class="risk-rule high">
-          <span>Many hyphens (> 3)</span><span class="rule-pts">+10 pts</span>
-        </div>
-        <div class="risk-rule medium">
-          <span>URL length > 75 characters</span><span class="rule-pts">+8 pts</span>
-        </div>
-        <div class="risk-rule medium">
-          <span>Multiple sub-domains (3–5 dots)</span><span class="rule-pts">+5 pts</span>
-        </div>
-        <div class="risk-rule low">
-          <span>High digit count (> 10)</span><span class="rule-pts">+5 pts</span>
+        <div class="viz-card">
+          <div class="viz-title">📉 Session Prediction Distribution</div>
+          <div class="chart-wrap"><canvas id="session-dist-chart"></canvas></div>
         </div>
       </div>
-      <div style="margin-top:14px;font-size:.75rem;color:var(--muted);line-height:1.6">
-        Max score: 100 (capped). Levels: <span style="color:var(--green)">LOW (0–19)</span> · 
-        <span style="color:var(--yellow)">MEDIUM (20–44)</span> · 
-        <span style="color:var(--red)">HIGH (45–69)</span> · 
-        <span style="color:#c0392b">CRITICAL (70+)</span>
+    </section>
+
+    <!-- ─────────────────────────────────── SECTION: RISK ANALYZER ─── -->
+    <section class="section" id="section-risk">
+      <div class="page-header">
+        <div class="page-title">URL <span>Risk</span> Analyzer</div>
+        <div class="page-sub">Rule-based risk scoring independent of the ML model</div>
       </div>
-    </div>
-  </div>
-</section>
 
-</main><!-- /main -->
+      <div class="grid-2" style="align-items:start">
+        <div>
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>Analyze URL Risk</div>
+            <div class="input-row">
+              <input class="inp" id="risk-url" type="text" placeholder="https://example.com" spellcheck="false" />
+              <button class="btn btn-primary" id="risk-btn" onclick="runRiskScan()">
+                <div class="spinner" id="risk-spinner"></div>
+                <span id="risk-btn-text">ANALYZE</span>
+              </button>
+            </div>
+          </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════
+          <div class="card mt-16" id="risk-result-card" style="display:none">
+            <div class="card-title"><span class="dot"></span>Risk Assessment</div>
+            <div class="risk-level-display" id="risk-level-big"></div>
+            <div class="risk-score-num" id="risk-score-display"></div>
+            <div class="risk-gauge">
+              <div class="risk-needle" id="risk-needle" style="left:0%"></div>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);font-family:var(--font-mono);margin-bottom:16px">
+              <span>LOW</span><span>MEDIUM</span><span>HIGH</span><span>CRITICAL</span>
+            </div>
+            <div class="risk-rules" id="risk-rules-detail"></div>
+            <div id="risk-ml-result"
+              style="margin-top:16px;padding:12px;border-radius:8px;background:var(--panel);border:1px solid var(--border);display:none">
+              <div
+                style="font-size:.72rem;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
+                ML Prediction</div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div id="risk-ml-label" style="font-family:var(--font-head);font-size:1rem;font-weight:600"></div>
+                <div id="risk-ml-conf" style="font-family:var(--font-mono)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="dot"></span>Risk Scoring Rules</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="risk-rule critical">
+              <span>No HTTPS encryption</span><span class="rule-pts">+25 pts</span>
+            </div>
+            <div class="risk-rule critical">
+              <span>@ symbol in URL (credential trick)</span><span class="rule-pts">+20 pts</span>
+            </div>
+            <div class="risk-rule critical">
+              <span>IP address instead of domain</span><span class="rule-pts">+20 pts</span>
+            </div>
+            <div class="risk-rule high">
+              <span>URL length > 100 characters</span><span class="rule-pts">+15 pts</span>
+            </div>
+            <div class="risk-rule high">
+              <span>Domain length > 40 characters</span><span class="rule-pts">+10 pts</span>
+            </div>
+            <div class="risk-rule high">
+              <span>Excessive dots (> 5)</span><span class="rule-pts">+10 pts</span>
+            </div>
+            <div class="risk-rule high">
+              <span>Many hyphens (> 3)</span><span class="rule-pts">+10 pts</span>
+            </div>
+            <div class="risk-rule medium">
+              <span>URL length > 75 characters</span><span class="rule-pts">+8 pts</span>
+            </div>
+            <div class="risk-rule medium">
+              <span>Multiple sub-domains (3–5 dots)</span><span class="rule-pts">+5 pts</span>
+            </div>
+            <div class="risk-rule low">
+              <span>High digit count (> 10)</span><span class="rule-pts">+5 pts</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;font-size:.75rem;color:var(--muted);line-height:1.6">
+            Max score: 100 (capped). Levels: <span style="color:var(--green)">LOW (0–19)</span> ·
+            <span style="color:var(--yellow)">MEDIUM (20–44)</span> ·
+            <span style="color:var(--red)">HIGH (45–69)</span> ·
+            <span style="color:#c0392b">CRITICAL (70+)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main><!-- /main -->
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
      JAVASCRIPT
 ════════════════════════════════════════════════════════════════════════ -->
-<script>
-"use strict";
-const API = "";   // relative — Flask serves both index.html and API
+  <script>
+    "use strict";
+    const API = window.location.protocol === "file:" ? "http://localhost:5001" : "";   // fallback to localhost:5001 if opened as local file
 
-// ── Global state ────────────────────────────────────────────────────────────
-let sessionHistory  = [];     // [{url,prediction,confidence,risk,timestamp}]
-let batchResults    = [];     // last batch scan results
-let vizData         = null;   // from /viz-data
-let chartInstances  = {};     // Chart.js instance registry (prevents leaks / resize loops)
-let currentSection  = "dashboard";
-let modelChartsReady = false; // static viz charts built once
+    // ── Global state ────────────────────────────────────────────────────────────
+    let sessionHistory = [];     // [{url,prediction,confidence,risk,timestamp}]
+    let vizData = null;   // from /viz-data
+    let chartInstances = {};     // Chart.js instance registry (prevents leaks / resize loops)
+    let currentSection = "dashboard";
+    let modelChartsReady = false; // static viz charts built once
 
-// Chart.js global defaults
-Chart.defaults.color            = "#6b7f99";
-Chart.defaults.borderColor      = "#1e3d5f";
-Chart.defaults.font.family      = "'DM Mono', monospace";
-Chart.defaults.responsive       = true;
-Chart.defaults.maintainAspectRatio = false;
+    // Chart.js global defaults
+    Chart.defaults.color = "#6b7f99";
+    Chart.defaults.borderColor = "#1e3d5f";
+    Chart.defaults.font.family = "'DM Mono', monospace";
+    Chart.defaults.responsive = true;
+    Chart.defaults.maintainAspectRatio = false;
 
-// Shared chart options — fixed-height containers prevent infinite resize
-const BASE_CHART_OPTS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  animation: { duration: 350 },
-};
+    // Shared chart options — fixed-height containers prevent infinite resize
+    const BASE_CHART_OPTS = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 350 },
+    };
 
-// ── Chart lifecycle helpers ───────────────────────────────────────────────────
-function destroyChart(canvasId) {
-  if (chartInstances[canvasId]) {
-    chartInstances[canvasId].destroy();
-    delete chartInstances[canvasId];
-  }
-}
-
-function createChart(canvasId, config) {
-  destroyChart(canvasId);
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
-  chartInstances[canvasId] = new Chart(canvas.getContext("2d"), config);
-  return chartInstances[canvasId];
-}
-
-function updateChartData(canvasId, newData) {
-  const chart = chartInstances[canvasId];
-  if (!chart) return false;
-  chart.data = newData;
-  chart.update("none");
-  return true;
-}
-
-// ── Navigation ───────────────────────────────────────────────────────────────
-function navigate(section) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  document.getElementById("section-" + section).classList.add("active");
-  document.getElementById("nav-" + section).classList.add("active");
-  currentSection = section;
-
-  // Lazy-init section-specific logic
-  if (section === "statistics")     refreshStats();
-  if (section === "modellab")       initModelLab();
-  if (section === "visualizations") initVisualizations();
-  if (section === "history")        loadHistoryPage();
-}
-
-// ── Server status check ─────────────────────────────────────────────────────
-async function checkServer() {
-  try {
-    const r = await fetch(API + "/stats");
-    if (r.ok) {
-      document.getElementById("server-status").textContent = "● Server online";
-      document.getElementById("server-status").style.color = "var(--green)";
+    // ── Chart lifecycle helpers ───────────────────────────────────────────────────
+    function destroyChart(canvasId) {
+      if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+        delete chartInstances[canvasId];
+      }
     }
-  } catch {
-    document.getElementById("server-status").textContent = "● Server offline";
-    document.getElementById("server-status").style.color = "var(--red)";
-  }
-}
-checkServer();
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SECTION 1 — DASHBOARD SCAN
-// ══════════════════════════════════════════════════════════════════════════════
-document.getElementById("dash-url").addEventListener("keydown", e => {
-  if (e.key === "Enter") dashScan();
-});
+    function createChart(canvasId, config) {
+      destroyChart(canvasId);
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return null;
+      chartInstances[canvasId] = new Chart(canvas.getContext("2d"), config);
+      return chartInstances[canvasId];
+    }
 
-function setDashLoading(on) {
-  const btn  = document.getElementById("dash-scan-btn");
-  const spin = document.getElementById("dash-spinner");
-  const txt  = document.getElementById("dash-btn-text");
-  btn.disabled = on;
-  spin.style.display = on ? "block" : "none";
-  txt.textContent = on ? "SCANNING…" : "SCAN";
-}
+    function updateChartData(canvasId, newData) {
+      const chart = chartInstances[canvasId];
+      if (!chart) return false;
+      chart.data = newData;
+      chart.update("none");
+      return true;
+    }
 
-function showScanError(msg) {
-  const el = document.getElementById("scan-error");
-  el.textContent = msg;
-  el.style.display = "block";
-}
-function hideScanError() {
-  document.getElementById("scan-error").style.display = "none";
-}
+    // ── Navigation ───────────────────────────────────────────────────────────────
+    function navigate(section) {
+      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+      document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+      document.getElementById("section-" + section).classList.add("active");
+      document.getElementById("nav-" + section).classList.add("active");
+      currentSection = section;
 
-async function dashScan() {
-  const url = document.getElementById("dash-url").value.trim();
-  if (!url) { document.getElementById("dash-url").focus(); return; }
+      // Lazy-init section-specific logic
+      if (section === "statistics") refreshStats();
+      if (section === "modellab") initModelLab();
+      if (section === "visualizations") initVisualizations();
+      if (section === "history") loadHistoryPage();
+    }
 
-  hideScanError();
-  document.getElementById("result-area").style.display = "none";
-  setDashLoading(true);
+    // ── Server status check ─────────────────────────────────────────────────────
+    async function checkServer() {
+      try {
+        const r = await fetch(API + "/stats");
+        if (r.ok) {
+          document.getElementById("server-status").textContent = "● Server online";
+          document.getElementById("server-status").style.color = "var(--green)";
+        }
+      } catch {
+        document.getElementById("server-status").textContent = "● Server offline";
+        document.getElementById("server-status").style.color = "var(--red)";
+      }
+    }
+    checkServer();
 
-  try {
-    const r = await fetch(API + "/predict", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({url}),
+    // ══════════════════════════════════════════════════════════════════════════════
+    // SECTION 1 — DASHBOARD SCAN
+    // ══════════════════════════════════════════════════════════════════════════════
+    document.getElementById("dash-url").addEventListener("keydown", e => {
+      if (e.key === "Enter") dashScan();
     });
-    const data = await r.json();
-    if (!r.ok) { showScanError("⚠️ " + (data.error || "Server error")); return; }
 
-    renderDashResult(data);
-    addToSessionHistory(data);
-    fetchWhois(url);
+    function setDashLoading(on) {
+      const btn = document.getElementById("dash-scan-btn");
+      const spin = document.getElementById("dash-spinner");
+      const txt = document.getElementById("dash-btn-text");
+      btn.disabled = on;
+      spin.style.display = on ? "block" : "none";
+      txt.textContent = on ? "SCANNING…" : "SCAN";
+    }
 
-  } catch (err) {
-    showScanError("🚫 Cannot connect to server. Is Flask running? (default: http://localhost:5001)");
-  } finally {
-    setDashLoading(false);
-  }
-}
+    function showScanError(msg) {
+      const el = document.getElementById("scan-error");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+    function hideScanError() {
+      document.getElementById("scan-error").style.display = "none";
+    }
 
-function renderDashResult(data) {
-  const isPhishing = data.prediction === "Phishing";
-  const conf       = parseFloat(data.confidence);
+    async function dashScan() {
+      const url = document.getElementById("dash-url").value.trim();
+      if (!url) { document.getElementById("dash-url").focus(); return; }
 
-  // Result card
-  const top = document.getElementById("result-top");
-  top.className = "result-top " + (isPhishing ? "phishing" : "safe");
-  document.getElementById("result-icon").textContent    = isPhishing ? "🚨" : "✅";
-  document.getElementById("result-verdict").textContent = isPhishing ? "PHISHING DETECTED" : "LEGITIMATE URL";
-  document.getElementById("result-verdict").className   = "result-verdict " + (isPhishing ? "phishing" : "safe");
-  document.getElementById("result-urltext").textContent = data.url;
+      hideScanError();
+      document.getElementById("result-area").style.display = "none";
+      setDashLoading(true);
 
-  // Confidence ring
-  animateRing(conf, isPhishing);
+      try {
+        const r = await fetch(API + "/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        const data = await r.json();
+        if (!r.ok) { showScanError("⚠️ " + (data.error || "Server error")); return; }
 
-  // Feature breakdown
-  if (data.features && data.feature_names) {
-    renderFeaturePanel(data.features, data.feature_names);
-  }
+        renderDashResult(data);
+        addToSessionHistory(data);
+        fetchWhois(url);
 
-  // Risk panel
-  if (data.risk) {
-    renderRiskPanel(data.risk);
-  }
+      } catch (err) {
+        showScanError("🚫 Cannot connect to server. Is Flask running? (default: http://localhost:5001)");
+      } finally {
+        setDashLoading(false);
+      }
+    }
 
-  document.getElementById("result-area").style.display = "block";
-  renderDashHistory();
-}
+    function renderDashResult(data) {
+      const isPhishing = data.prediction === "Phishing";
+      const conf = parseFloat(data.confidence);
 
-// ── Confidence ring (SVG) ────────────────────────────────────────────────────
-function animateRing(conf, isPhishing) {
-  const CIRC = 376;   // 2 * π * 60
-  const fill = document.getElementById("ring-fill");
-  const pct  = document.getElementById("ring-pct");
-  const lbl  = document.getElementById("ring-label");
+      // Result card
+      const top = document.getElementById("result-top");
+      top.className = "result-top " + (isPhishing ? "phishing" : "safe");
+      document.getElementById("result-icon").textContent = isPhishing ? "🚨" : "✅";
+      document.getElementById("result-verdict").textContent = isPhishing ? "PHISHING DETECTED" : "LEGITIMATE URL";
+      document.getElementById("result-verdict").className = "result-verdict " + (isPhishing ? "phishing" : "safe");
+      document.getElementById("result-urltext").textContent = data.url;
 
-  let color;
-  if (conf < 70)            color = "var(--yellow)";
-  else if (isPhishing)      color = "var(--red)";
-  else                      color = "var(--green)";
+      // Confidence ring
+      animateRing(conf, isPhishing);
 
-  fill.style.stroke = color;
-  fill.style.strokeDashoffset = CIRC;   // reset
+      // Feature breakdown
+      if (data.features && data.feature_names) {
+        renderFeaturePanel(data.features, data.feature_names);
+      }
 
-  setTimeout(() => {
-    fill.style.strokeDashoffset = CIRC * (1 - conf / 100);
-  }, 50);
+      // Risk panel
+      if (data.risk) {
+        renderRiskPanel(data.risk);
+      }
 
-  pct.textContent = conf.toFixed(1) + "%";
-  pct.style.color = color;
-  lbl.textContent = isPhishing ? "Phishing confidence" : "Legitimate confidence";
-  lbl.style.color = color;
-}
+      document.getElementById("result-area").style.display = "block";
+      renderDashHistory();
+    }
 
-// ── Feature breakdown table ──────────────────────────────────────────────────
-const FEAT_THRESHOLDS = [
-  {threshold:75, op:">", label:"Long URL"},
-  {threshold:30, op:">", label:"Long domain"},
-  {threshold:3,  op:">", label:"Many dots"},
-  {threshold:2,  op:">", label:"Many hyphens"},
-  {threshold:0,  op:">", label:"@ found"},
-  {threshold:6,  op:">", label:"Deep path"},
-  {threshold:8,  op:">", label:"Many digits"},
-  {threshold:1,  op:"!=",label:"No HTTPS"},
-  {threshold:1,  op:"==",label:"IP used"},
-];
+    // ── Confidence ring (SVG) ────────────────────────────────────────────────────
+    function animateRing(conf, isPhishing) {
+      const CIRC = 376;   // 2 * π * 60
+      const fill = document.getElementById("ring-fill");
+      const pct = document.getElementById("ring-pct");
+      const lbl = document.getElementById("ring-label");
 
-function isSuspicious(val, t) {
-  if (t.op === ">")  return val > t.threshold;
-  if (t.op === "!=") return val !== t.threshold;
-  if (t.op === "==") return val === t.threshold;
-  return false;
-}
+      let color;
+      if (conf < 70) color = "var(--yellow)";
+      else if (isPhishing) color = "var(--red)";
+      else color = "var(--green)";
 
-function renderFeaturePanel(features, names) {
-  const container = document.getElementById("feat-rows");
-  container.innerHTML = "";
-  features.forEach((val, i) => {
-    const susp = isSuspicious(val, FEAT_THRESHOLDS[i]);
-    const row = document.createElement("div");
-    row.className = "feat-row " + (susp ? "suspicious" : "ok");
-    row.innerHTML = `
+      fill.style.stroke = color;
+      fill.style.strokeDashoffset = CIRC;   // reset
+
+      setTimeout(() => {
+        fill.style.strokeDashoffset = CIRC * (1 - conf / 100);
+      }, 50);
+
+      pct.textContent = conf.toFixed(1) + "%";
+      pct.style.color = color;
+      lbl.textContent = isPhishing ? "Phishing confidence" : "Legitimate confidence";
+      lbl.style.color = color;
+    }
+
+    // ── Feature breakdown table ──────────────────────────────────────────────────
+    const FEAT_THRESHOLDS = [
+      { threshold: 75, op: ">", label: "Long URL" },
+      { threshold: 30, op: ">", label: "Long domain" },
+      { threshold: 3, op: ">", label: "Many dots" },
+      { threshold: 2, op: ">", label: "Many hyphens" },
+      { threshold: 0, op: ">", label: "@ found" },
+      { threshold: 6, op: ">", label: "Deep path" },
+      { threshold: 8, op: ">", label: "Many digits" },
+      { threshold: 1, op: "!=", label: "No HTTPS" },
+      { threshold: 1, op: "==", label: "IP used" },
+    ];
+
+    function isSuspicious(val, t) {
+      if (t.op === ">") return val > t.threshold;
+      if (t.op === "!=") return val !== t.threshold;
+      if (t.op === "==") return val === t.threshold;
+      return false;
+    }
+
+    function renderFeaturePanel(features, names) {
+      const container = document.getElementById("feat-rows");
+      container.innerHTML = "";
+      features.forEach((val, i) => {
+        const susp = isSuspicious(val, FEAT_THRESHOLDS[i]);
+        const row = document.createElement("div");
+        row.className = "feat-row " + (susp ? "suspicious" : "ok");
+        row.innerHTML = `
       <span class="feat-name">${names[i]}</span>
-      <span class="feat-val" style="color:${susp?"var(--red)":"var(--green)"}">${val}</span>
+      <span class="feat-val" style="color:${susp ? "var(--red)" : "var(--green)"}">${val}</span>
       <span class="feat-status">${susp ? "⚠️" : "✓"}</span>
     `;
-    container.appendChild(row);
-  });
-  document.getElementById("feature-panel").style.display = "block";
-}
+        container.appendChild(row);
+      });
+      document.getElementById("feature-panel").style.display = "block";
+    }
 
-// ── Risk panel ───────────────────────────────────────────────────────────────
-function renderRiskPanel(risk) {
-  const colorMap = {CRITICAL:"var(--red)",HIGH:"var(--yellow)",MEDIUM:"var(--blue)",LOW:"var(--green)"};
-  const badgeMap = {CRITICAL:"badge-phishing",HIGH:"badge-warn",MEDIUM:"badge-info",LOW:"badge-safe"};
+    // ── Risk panel ───────────────────────────────────────────────────────────────
+    function renderRiskPanel(risk) {
+      const colorMap = { CRITICAL: "var(--red)", HIGH: "var(--yellow)", MEDIUM: "var(--blue)", LOW: "var(--green)" };
+      const badgeMap = { CRITICAL: "badge-phishing", HIGH: "badge-warn", MEDIUM: "badge-info", LOW: "badge-safe" };
 
-  const badge = document.getElementById("risk-level-badge");
-  badge.textContent = risk.level;
-  badge.className = "badge " + badgeMap[risk.level];
+      const badge = document.getElementById("risk-level-badge");
+      badge.textContent = risk.level;
+      badge.className = "badge " + badgeMap[risk.level];
 
-  document.getElementById("risk-score-label").textContent = risk.score + " / 100";
-  document.getElementById("risk-score-label").style.color = colorMap[risk.level];
+      document.getElementById("risk-score-label").textContent = risk.score + " / 100";
+      document.getElementById("risk-score-label").style.color = colorMap[risk.level];
 
-  const bar = document.getElementById("risk-bar");
-  bar.style.background = colorMap[risk.level];
-  bar.style.width = "0%";
-  setTimeout(() => { bar.style.width = risk.score + "%"; }, 50);
+      const bar = document.getElementById("risk-bar");
+      bar.style.background = colorMap[risk.level];
+      bar.style.width = "0%";
+      setTimeout(() => { bar.style.width = risk.score + "%"; }, 50);
 
-  const list = document.getElementById("risk-rules-list");
-  list.innerHTML = "";
-  risk.rules.forEach(r => {
-    const el = document.createElement("div");
-    el.className = "risk-rule " + r.severity;
-    el.innerHTML = `<span>${r.rule}</span><span class="rule-pts">+${r.points}</span>`;
-    list.appendChild(el);
-  });
-  if (risk.rules.length === 0) {
-    list.innerHTML = '<div style="color:var(--green);font-size:.82rem;text-align:center">✓ No suspicious patterns detected</div>';
-  }
-  document.getElementById("risk-panel").style.display = "block";
-}
+      const list = document.getElementById("risk-rules-list");
+      list.innerHTML = "";
+      risk.rules.forEach(r => {
+        const el = document.createElement("div");
+        el.className = "risk-rule " + r.severity;
+        el.innerHTML = `<span>${r.rule}</span><span class="rule-pts">+${r.points}</span>`;
+        list.appendChild(el);
+      });
+      if (risk.rules.length === 0) {
+        list.innerHTML = '<div style="color:var(--green);font-size:.82rem;text-align:center">✓ No suspicious patterns detected</div>';
+      }
+      document.getElementById("risk-panel").style.display = "block";
+    }
 
-// ── WHOIS lookup ─────────────────────────────────────────────────────────────
-async function fetchWhois(url) {
-  try {
-    const r = await fetch(API + "/whois", {
-      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({url})
-    });
-    const data = await r.json();
-    if (!data.available || data.error) return;
+    // ── WHOIS lookup ─────────────────────────────────────────────────────────────
+    async function fetchWhois(url) {
+      try {
+        const r = await fetch(API + "/whois", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url })
+        });
+        const data = await r.json();
+        if (!data.available || data.error) return;
 
-    const panel   = document.getElementById("whois-panel");
-    const content = document.getElementById("whois-content");
-    content.innerHTML = `
+        const panel = document.getElementById("whois-panel");
+        const content = document.getElementById("whois-content");
+        content.innerHTML = `
       <div class="whois-grid">
         <div class="whois-item">
           <div class="whois-k">Domain</div>
@@ -1315,366 +2066,294 @@ async function fetchWhois(url) {
         </div>
         <div class="whois-item">
           <div class="whois-k">Created</div>
-          <div class="whois-v" style="color:${data.suspicious?"var(--red)":"var(--text)"}">${data.created || "Unknown"}</div>
+          <div class="whois-v" style="color:${data.suspicious ? "var(--red)" : "var(--text)"}">${data.created || "Unknown"}</div>
         </div>
         <div class="whois-item">
           <div class="whois-k">Age (days)</div>
-          <div class="whois-v" style="color:${data.suspicious?"var(--red)":"var(--green)"}">${data.age_days ?? "Unknown"} ${data.suspicious?"⚠️":""}</div>
+          <div class="whois-v" style="color:${data.suspicious ? "var(--red)" : "var(--green)"}">${data.age_days ?? "Unknown"} ${data.suspicious ? "⚠️" : ""}</div>
         </div>
         <div class="whois-item">
           <div class="whois-k">Registrar</div>
           <div class="whois-v">${data.registrar}</div>
         </div>
       </div>
-      ${data.suspicious?`<div style="margin-top:10px;padding:8px 12px;background:var(--red-dim);border:1px solid var(--red);border-radius:6px;font-size:.8rem;color:var(--red)">🚨 ${data.note}</div>`:""}
+      ${data.suspicious ? `<div style="margin-top:10px;padding:8px 12px;background:var(--red-dim);border:1px solid var(--red);border-radius:6px;font-size:.8rem;color:var(--red)">🚨 ${data.note}</div>` : ""}
     `;
-    panel.style.display = "block";
-  } catch { /* WHOIS is optional */ }
-}
+        panel.style.display = "block";
+      } catch { /* WHOIS is optional */ }
+    }
 
-function resetDash() {
-  document.getElementById("result-area").style.display = "none";
-  document.getElementById("feature-panel").style.display = "none";
-  document.getElementById("risk-panel").style.display = "none";
-  document.getElementById("whois-panel").style.display = "none";
-  document.getElementById("dash-url").value = "";
-  document.getElementById("ring-pct").textContent = "—";
-  document.getElementById("ring-label").textContent = "Scan a URL to start";
-  document.getElementById("ring-label").style.color = "var(--muted)";
-  document.getElementById("ring-fill").style.strokeDashoffset = 376;
-  hideScanError();
-  document.getElementById("dash-url").focus();
-}
+    function resetDash() {
+      document.getElementById("result-area").style.display = "none";
+      document.getElementById("feature-panel").style.display = "none";
+      document.getElementById("risk-panel").style.display = "none";
+      document.getElementById("whois-panel").style.display = "none";
+      document.getElementById("dash-url").value = "";
+      document.getElementById("ring-pct").textContent = "—";
+      document.getElementById("ring-label").textContent = "Scan a URL to start";
+      document.getElementById("ring-label").style.color = "var(--muted)";
+      document.getElementById("ring-fill").style.strokeDashoffset = 376;
+      hideScanError();
+      document.getElementById("dash-url").focus();
+    }
 
-// ── Dashboard recent history mini-list ───────────────────────────────────────
-function renderDashHistory() {
-  const list = document.getElementById("dash-hist-list");
-  if (sessionHistory.length === 0) {
-    list.innerHTML = '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">No scans yet</div>';
-    return;
-  }
-  list.innerHTML = sessionHistory.slice(0,8).map(h => `
+    // ── Dashboard recent history mini-list ───────────────────────────────────────
+    function renderDashHistory() {
+      const list = document.getElementById("dash-hist-list");
+      if (sessionHistory.length === 0) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">No scans yet</div>';
+        return;
+      }
+      list.innerHTML = sessionHistory.slice(0, 8).map(h => `
     <div class="hist-item">
-      <div class="hist-dot ${h.prediction==="Phishing"?"phishing":"safe"}"></div>
+      <div class="hist-dot ${h.prediction === "Phishing" ? "phishing" : "safe"}"></div>
       <div class="hist-url" title="${h.url}">${h.url}</div>
       <div class="hist-time">${h.timestamp}</div>
     </div>
   `).join("");
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// SECTION 2 — BATCH SCAN
-// ══════════════════════════════════════════════════════════════════════════════
-document.getElementById("batch-input").addEventListener("input", () => {
-  const urls = document.getElementById("batch-input").value.trim().split("\n").filter(u => u.trim());
-  const c    = document.getElementById("url-count");
-  c.textContent = urls.length ? urls.length + " URL" + (urls.length > 1 ? "s" : "") + " detected" : "";
-});
-
-async function runBatch() {
-  const raw  = document.getElementById("batch-input").value.trim();
-  const urls = raw.split("\n").map(u => u.trim()).filter(Boolean);
-  if (!urls.length) return;
-
-  const btn  = document.getElementById("batch-btn");
-  const spin = document.getElementById("batch-spinner");
-  const txt  = document.getElementById("batch-btn-text");
-  btn.disabled = true; spin.style.display = "block"; txt.textContent = "SCANNING…";
-
-  try {
-    const r    = await fetch(API + "/batch", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({urls}),
-    });
-    const data = await r.json();
-    if (!r.ok) { alert(data.error || "Batch scan failed"); return; }
-
-    batchResults = data.results;
-    data.results.forEach(r => {
-      if (!r.error) addToSessionHistory(r);
-    });
-    renderBatchResults(data);
-  } catch {
-    alert("Cannot connect to server. Is Flask running?");
-  } finally {
-    btn.disabled = false; spin.style.display = "none"; txt.textContent = "⚡ SCAN ALL URLS";
-  }
-}
-
-function renderBatchResults(data) {
-  // Summary
-  document.getElementById("batch-total").textContent    = data.total;
-  document.getElementById("batch-phishing-count").textContent = data.phishing_found;
-  document.getElementById("batch-safe-count").textContent     = data.safe_found;
-  document.getElementById("batch-summary").style.display = "flex";
-
-  // Table
-  const tbody = document.getElementById("batch-tbody");
-  tbody.innerHTML = data.results.map((r, i) => {
-    if (r.error) return `<tr><td>${i+1}</td><td colspan="4" style="color:var(--red);font-size:.78rem">${r.url} — ${r.error}</td></tr>`;
-    const isP   = r.prediction === "Phishing";
-    const rcol  = {CRITICAL:"var(--red)",HIGH:"var(--yellow)",MEDIUM:"var(--blue)",LOW:"var(--green)"}[r.risk_level];
-    return `<tr>
-      <td>${i+1}</td>
-      <td style="font-family:var(--font-mono);font-size:.75rem;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.url}">${r.url}</td>
-      <td><span class="badge ${isP?"badge-phishing":"badge-safe"}">${r.prediction}</span></td>
-      <td style="font-family:var(--font-mono)">${r.confidence.toFixed(1)}%</td>
-      <td><span style="color:${rcol};font-family:var(--font-mono);font-size:.78rem">${r.risk_level}</span></td>
-    </tr>`;
-  }).join("");
-  document.getElementById("batch-results-wrap").style.display = "block";
-}
-
-function exportBatchCSV() {
-  if (!batchResults.length) return;
-  const rows = [["#","URL","Prediction","Confidence","Risk Level"]];
-  batchResults.forEach((r, i) => {
-    if (!r.error) rows.push([i+1, r.url, r.prediction, r.confidence.toFixed(1)+"%", r.risk_level]);
-  });
-  downloadCSV(rows, "safeweb_batch_scan.csv");
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// SECTION 3 — HISTORY
-// ══════════════════════════════════════════════════════════════════════════════
-function addToSessionHistory(data) {
-  const now = new Date();
-  sessionHistory.unshift({
-    url:        data.url,
-    prediction: data.prediction,
-    confidence: data.confidence,
-    risk:       data.risk ? data.risk.level : (data.risk_level || "—"),
-    timestamp:  now.toLocaleTimeString(),
-  });
-  if (sessionHistory.length > 200) sessionHistory.pop();
-}
-
-// Merge server-side scan log with local history (server has all scan types)
-async function loadHistoryPage() {
-  try {
-    const r = await fetch(API + "/stats");
-    if (r.ok) {
-      const data = await r.json();
-      if (data.history && data.history.length) {
-        sessionHistory = data.history.map(h => ({
-          url:        h.url,
-          prediction: h.prediction,
-          confidence: h.confidence,
-          risk:       h.risk || "—",
-          timestamp:  h.timestamp,
-        }));
-      }
     }
-  } catch { /* use local history if server unavailable */ }
-  renderHistory();
-}
 
-function renderHistory() {
-  const search = (document.getElementById("hist-search")?.value || "").toLowerCase();
-  const tbody  = document.getElementById("history-tbody");
-  const empty  = document.getElementById("history-empty");
-  const rows   = sessionHistory.filter(h => !search || h.url.toLowerCase().includes(search));
+    // ══════════════════════════════════════════════════════════════════════════════
+    // SECTION 3 — HISTORY
+    // ══════════════════════════════════════════════════════════════════════════════
+    function addToSessionHistory(data) {
+      const now = new Date();
+      sessionHistory.unshift({
+        url: data.url,
+        prediction: data.prediction,
+        confidence: data.confidence,
+        risk: data.risk ? data.risk.level : (data.risk_level || "—"),
+        timestamp: now.toLocaleTimeString(),
+      });
+      if (sessionHistory.length > 200) sessionHistory.pop();
+    }
 
-  if (!rows.length) {
-    tbody.innerHTML = "";
-    empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
-  tbody.innerHTML = rows.map((h, i) => {
-    const isP = h.prediction === "Phishing";
-    const rcol= {CRITICAL:"var(--red)",HIGH:"var(--yellow)",MEDIUM:"var(--blue)",LOW:"var(--green)","—":"var(--muted)"}[h.risk];
-    return `<tr>
-      <td>${i+1}</td>
+    // Merge server-side scan log with local history (server has all scan types)
+    async function loadHistoryPage() {
+      try {
+        const r = await fetch(API + "/stats");
+        if (r.ok) {
+          const data = await r.json();
+          if (data.history && data.history.length) {
+            sessionHistory = data.history.map(h => ({
+              url: h.url,
+              prediction: h.prediction,
+              confidence: h.confidence,
+              risk: h.risk || "—",
+              timestamp: h.timestamp,
+            }));
+          }
+        }
+      } catch { /* use local history if server unavailable */ }
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const search = (document.getElementById("hist-search")?.value || "").toLowerCase();
+      const tbody = document.getElementById("history-tbody");
+      const empty = document.getElementById("history-empty");
+      const rows = sessionHistory.filter(h => !search || h.url.toLowerCase().includes(search));
+
+      if (!rows.length) {
+        tbody.innerHTML = "";
+        empty.style.display = "block";
+        return;
+      }
+      empty.style.display = "none";
+      tbody.innerHTML = rows.map((h, i) => {
+        const isP = h.prediction === "Phishing";
+        const rcol = { CRITICAL: "var(--red)", HIGH: "var(--yellow)", MEDIUM: "var(--blue)", LOW: "var(--green)", "—": "var(--muted)" }[h.risk];
+        return `<tr>
+      <td>${i + 1}</td>
       <td class="url-cell" title="${h.url}">${h.url}</td>
-      <td><span class="badge ${isP?"badge-phishing":"badge-safe"}">${h.prediction}</span></td>
-      <td style="font-family:var(--font-mono)">${h.confidence.toFixed?h.confidence.toFixed(1)+"%" : h.confidence+"%"}</td>
+      <td><span class="badge ${isP ? "badge-phishing" : "badge-safe"}">${h.prediction}</span></td>
+      <td style="font-family:var(--font-mono)">${h.confidence.toFixed ? h.confidence.toFixed(1) + "%" : h.confidence + "%"}</td>
       <td><span style="color:${rcol};font-family:var(--font-mono);font-size:.78rem">${h.risk}</span></td>
       <td style="color:var(--muted);font-family:var(--font-mono);font-size:.75rem">${h.timestamp}</td>
     </tr>`;
-  }).join("");
-}
+      }).join("");
+    }
 
-function clearHistory() {
-  if (!confirm("Clear all scan history?")) return;
-  sessionHistory = [];
-  renderHistory();
-  renderDashHistory();
-}
+    function clearHistory() {
+      if (!confirm("Clear all scan history?")) return;
+      sessionHistory = [];
+      renderHistory();
+      renderDashHistory();
+    }
 
-function exportHistoryCSV() {
-  if (!sessionHistory.length) return;
-  const rows = [["#","URL","Prediction","Confidence","Risk","Time"]];
-  sessionHistory.forEach((h, i) => rows.push([i+1, h.url, h.prediction, h.confidence+"%", h.risk, h.timestamp]));
-  downloadCSV(rows, "safeweb_history.csv");
-}
+    function exportHistoryCSV() {
+      if (!sessionHistory.length) return;
+      const rows = [["#", "URL", "Prediction", "Confidence", "Risk", "Time"]];
+      sessionHistory.forEach((h, i) => rows.push([i + 1, h.url, h.prediction, h.confidence + "%", h.risk, h.timestamp]));
+      downloadCSV(rows, "safeweb_history.csv");
+    }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SECTION 4 — STATISTICS
-// ══════════════════════════════════════════════════════════════════════════════
-let statsInterval = null;
+    // ══════════════════════════════════════════════════════════════════════════════
+    // SECTION 4 — STATISTICS
+    // ══════════════════════════════════════════════════════════════════════════════
+    let statsInterval = null;
 
-async function refreshStats() {
-  try {
-    const r    = await fetch(API + "/stats");
-    const data = await r.json();
+    async function refreshStats() {
+      try {
+        const r = await fetch(API + "/stats");
+        const data = await r.json();
 
-    document.getElementById("stat-total").textContent    = data.total;
-    document.getElementById("stat-phishing").textContent = data.phishing;
-    document.getElementById("stat-safe").textContent     = data.safe;
-    document.getElementById("stat-pct").textContent      = data.phishing_pct + "%";
+        document.getElementById("stat-total").textContent = data.total;
+        document.getElementById("stat-phishing").textContent = data.phishing;
+        document.getElementById("stat-safe").textContent = data.safe;
+        document.getElementById("stat-pct").textContent = data.phishing_pct + "%";
 
-    updateDonutChart(data.phishing, data.safe);
-    updateConfDistChart(data.recent_history || []);
-    renderActivityFeed(data.recent_history || []);
-  } catch { /* server may be starting */ }
+        updateDonutChart(data.phishing, data.safe);
+        updateConfDistChart(data.recent_history || []);
+        renderActivityFeed(data.recent_history || []);
+      } catch { /* server may be starting */ }
 
-  clearTimeout(statsInterval);
-  statsInterval = setTimeout(() => {
-    if (currentSection === "statistics") refreshStats();
-  }, 10000);
-}
+      clearTimeout(statsInterval);
+      statsInterval = setTimeout(() => {
+        if (currentSection === "statistics") refreshStats();
+      }, 10000);
+    }
 
-function updateDonutChart(phishing, safe) {
-  const chartData = {
-    labels: ["Phishing", "Safe"],
-    datasets: [{
-      data: [phishing, safe],
-      backgroundColor: ["#e8556388", "#3ecf8e88"],
-      borderColor:     ["#e85563", "#3ecf8e"],
-      borderWidth: 2,
-    }],
-  };
-  const opts = {
-    ...BASE_CHART_OPTS,
-    plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd", font: { size: 12 } } } },
-    cutout: "65%",
-  };
-  if (!updateChartData("donut-chart", chartData)) {
-    createChart("donut-chart", { type: "doughnut", data: chartData, options: opts });
-  }
-}
+    function updateDonutChart(phishing, safe) {
+      const chartData = {
+        labels: ["Phishing", "Safe"],
+        datasets: [{
+          data: [phishing, safe],
+          backgroundColor: ["#e8556388", "#3ecf8e88"],
+          borderColor: ["#e85563", "#3ecf8e"],
+          borderWidth: 2,
+        }],
+      };
+      const opts = {
+        ...BASE_CHART_OPTS,
+        plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd", font: { size: 12 } } } },
+        cutout: "65%",
+      };
+      if (!updateChartData("donut-chart", chartData)) {
+        createChart("donut-chart", { type: "doughnut", data: chartData, options: opts });
+      }
+    }
 
-function updateConfDistChart(history) {
-  const buckets = [0, 0, 0, 0, 0];
-  history.forEach(h => {
-    const c = parseFloat(h.confidence);
-    buckets[Math.min(Math.floor(c / 20), 4)]++;
-  });
-  const chartData = {
-    labels: ["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"],
-    datasets: [{
-      label: "Scans",
-      data: buckets,
-      backgroundColor: "#1ec9a844",
-      borderColor: "#1ec9a8",
-      borderWidth: 2,
-      borderRadius: 6,
-    }],
-  };
-  const opts = {
-    ...BASE_CHART_OPTS,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" } },
-      y: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", stepSize: 1 } },
-    },
-  };
-  if (!updateChartData("conf-chart", chartData)) {
-    createChart("conf-chart", { type: "bar", data: chartData, options: opts });
-  }
-}
+    function updateConfDistChart(history) {
+      const buckets = [0, 0, 0, 0, 0];
+      history.forEach(h => {
+        const c = parseFloat(h.confidence);
+        buckets[Math.min(Math.floor(c / 20), 4)]++;
+      });
+      const chartData = {
+        labels: ["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"],
+        datasets: [{
+          label: "Scans",
+          data: buckets,
+          backgroundColor: "#1ec9a844",
+          borderColor: "#1ec9a8",
+          borderWidth: 2,
+          borderRadius: 6,
+        }],
+      };
+      const opts = {
+        ...BASE_CHART_OPTS,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" } },
+          y: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", stepSize: 1 } },
+        },
+      };
+      if (!updateChartData("conf-chart", chartData)) {
+        createChart("conf-chart", { type: "bar", data: chartData, options: opts });
+      }
+    }
 
-function renderActivityFeed(history) {
-  const feed = document.getElementById("activity-feed");
-  if (!history.length) {
-    feed.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">No activity yet. Start scanning URLs.</div>';
-    return;
-  }
-  feed.innerHTML = history.slice().reverse().map(h => {
-    const isP = h.prediction === "Phishing";
-    return `
+    function renderActivityFeed(history) {
+      const feed = document.getElementById("activity-feed");
+      if (!history.length) {
+        feed.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">No activity yet. Start scanning URLs.</div>';
+        return;
+      }
+      feed.innerHTML = history.slice().reverse().map(h => {
+        const isP = h.prediction === "Phishing";
+        return `
       <div class="hist-item">
-        <div class="hist-dot ${isP?"phishing":"safe"}"></div>
+        <div class="hist-dot ${isP ? "phishing" : "safe"}"></div>
         <div class="hist-url" title="${h.url}">${h.url}</div>
-        <span class="badge ${isP?"badge-phishing":"badge-safe"}" style="flex-shrink:0">${h.prediction}</span>
+        <span class="badge ${isP ? "badge-phishing" : "badge-safe"}" style="flex-shrink:0">${h.prediction}</span>
         <div class="hist-time">${h.timestamp}</div>
       </div>`;
-  }).join("");
-}
+      }).join("");
+    }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SECTION 5 — MODEL LAB
-// ══════════════════════════════════════════════════════════════════════════════
-let modelLabReady = false;
+    // ══════════════════════════════════════════════════════════════════════════════
+    // SECTION 5 — MODEL LAB
+    // ══════════════════════════════════════════════════════════════════════════════
+    let modelLabReady = false;
 
-async function initModelLab() {
-  if (modelLabReady) return;
-  modelLabReady = true;
+    async function initModelLab() {
+      if (modelLabReady) return;
+      modelLabReady = true;
 
-  const data = await fetchVizData();
-  if (!data || !data.available) {
-    document.getElementById("models-not-ready").style.display = "block";
-    return;
-  }
+      const data = await fetchVizData();
+      if (!data || !data.available) {
+        document.getElementById("models-not-ready").style.display = "block";
+        return;
+      }
 
-  // Populate accuracy values in algo cards
-  const slugMap = {
-    "K-Nearest Neighbor": "acc-knn",
-    "Decision Tree":      "acc-dt",
-    "Logistic Regression":"acc-lr",
-    "Naive Bayes":        "acc-nb",
-    "Random Forest":      "acc-rf",
-    "XGBoost":            "acc-xgb",
-    "Gradient Boosting":  "acc-xgb",
-  };
-  Object.entries(data.metrics).forEach(([name, m]) => {
-    const elId = slugMap[name];
-    if (elId) document.getElementById(elId).textContent = m.accuracy + "% accuracy";
-  });
-}
+      // Populate accuracy values in algo cards
+      const slugMap = {
+        "K-Nearest Neighbor": "acc-knn",
+        "Decision Tree": "acc-dt",
+        "Logistic Regression": "acc-lr",
+        "Naive Bayes": "acc-nb",
+        "Random Forest": "acc-rf",
+        "XGBoost": "acc-xgb",
+        "Gradient Boosting": "acc-xgb",
+      };
+      Object.entries(data.metrics).forEach(([name, m]) => {
+        const elId = slugMap[name];
+        if (elId) document.getElementById(elId).textContent = m.accuracy + "% accuracy";
+      });
+    }
 
-document.getElementById("compare-url").addEventListener("keydown", e => {
-  if (e.key === "Enter") runCompare();
-});
-
-async function runCompare() {
-  const url = document.getElementById("compare-url").value.trim();
-  if (!url) return;
-
-  const btn  = document.getElementById("compare-btn");
-  const spin = document.getElementById("compare-spinner");
-  const txt  = document.getElementById("compare-btn-text");
-  btn.disabled = true; spin.style.display = "block"; txt.textContent = "RUNNING…";
-
-  try {
-    const r    = await fetch(API + "/compare", {
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({url})
+    document.getElementById("compare-url").addEventListener("keydown", e => {
+      if (e.key === "Enter") runCompare();
     });
-    const data = await r.json();
-    if (!r.ok) { alert(data.error || "Compare failed"); return; }
 
-    renderCompareResults(data);
-  } catch {
-    alert("Cannot connect to server.");
-  } finally {
-    btn.disabled = false; spin.style.display = "none"; txt.textContent = "COMPARE";
-  }
-}
+    async function runCompare() {
+      const url = document.getElementById("compare-url").value.trim();
+      if (!url) return;
 
-function renderCompareResults(data) {
-  const container = document.getElementById("compare-rows");
-  const entries   = Object.entries(data.results);
+      const btn = document.getElementById("compare-btn");
+      const spin = document.getElementById("compare-spinner");
+      const txt = document.getElementById("compare-btn-text");
+      btn.disabled = true; spin.style.display = "block"; txt.textContent = "RUNNING…";
 
-  container.innerHTML = entries.map(([name, res]) => {
-    if (res.error) return `
+      try {
+        const r = await fetch(API + "/compare", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url })
+        });
+        const data = await r.json();
+        if (!r.ok) { alert(data.error || "Compare failed"); return; }
+
+        renderCompareResults(data);
+      } catch {
+        alert("Cannot connect to server.");
+      } finally {
+        btn.disabled = false; spin.style.display = "none"; txt.textContent = "COMPARE";
+      }
+    }
+
+    function renderCompareResults(data) {
+      const container = document.getElementById("compare-rows");
+      const entries = Object.entries(data.results);
+
+      container.innerHTML = entries.map(([name, res]) => {
+        if (res.error) return `
       <div class="compare-row">
         <div class="compare-name">${name}</div>
         <div style="color:var(--muted);font-size:.78rem;flex:1">${res.error}</div>
       </div>`;
-    const isP = res.prediction === "Phishing";
-    const col = isP ? "var(--red)" : "var(--green)";
-    return `
+        const isP = res.prediction === "Phishing";
+        const col = isP ? "var(--red)" : "var(--green)";
+        return `
       <div class="compare-row">
         <div class="compare-name">${name}</div>
         <div class="compare-bar-wrap">
@@ -1682,344 +2361,345 @@ function renderCompareResults(data) {
         </div>
         <div class="compare-pct" style="color:${col}">${res.confidence.toFixed(1)}%</div>
         <div class="compare-badge">
-          <span class="badge ${isP?"badge-phishing":"badge-safe"}">${res.prediction}</span>
+          <span class="badge ${isP ? "badge-phishing" : "badge-safe"}">${res.prediction}</span>
         </div>
       </div>`;
-  }).join("");
+      }).join("");
 
-  // Majority vote banner
-  const banner = document.getElementById("vote-banner");
-  banner.className = "vote-banner " + (data.majority === "Phishing" ? "phishing" : "safe");
-  banner.style.display = "flex";
-  document.getElementById("vote-text").textContent = "Majority Vote: " + data.majority;
-  document.getElementById("vote-count").textContent =
-    `${data.votes.phishing} model(s) say Phishing · ${data.votes.legitimate} model(s) say Legitimate`;
-  document.getElementById("vote-icon").textContent = data.majority === "Phishing" ? "🚨" : "✅";
+      // Majority vote banner
+      const banner = document.getElementById("vote-banner");
+      banner.className = "vote-banner " + (data.majority === "Phishing" ? "phishing" : "safe");
+      banner.style.display = "flex";
+      document.getElementById("vote-text").textContent = "Majority Vote: " + data.majority;
+      document.getElementById("vote-count").textContent =
+        `${data.votes.phishing} model(s) say Phishing · ${data.votes.legitimate} model(s) say Legitimate`;
+      document.getElementById("vote-icon").textContent = data.majority === "Phishing" ? "🚨" : "✅";
 
-  document.getElementById("compare-results").style.display = "block";
-}
+      document.getElementById("compare-results").style.display = "block";
+    }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SECTION 6 — VISUALIZATIONS
-// ══════════════════════════════════════════════════════════════════════════════
-async function initVisualizations() {
-  const data = await fetchVizData();
+    // ══════════════════════════════════════════════════════════════════════════════
+    // SECTION 6 — VISUALIZATIONS
+    // ══════════════════════════════════════════════════════════════════════════════
+    async function initVisualizations() {
+      const data = await fetchVizData();
 
-  if (!modelChartsReady) {
-    modelChartsReady = true;
+      if (!modelChartsReady) {
+        modelChartsReady = true;
 
-    const featNames = data?.feature_names || [
-      "URL Length", "Domain Length", "Num Dots", "Num Hyphens",
-      "Num @", "Num Slashes", "Num Digits", "Has HTTPS", "Has IP",
-    ];
-    const avgPhish = data?.dataset_averages?.phishing ||
-      [130, 38, 7, 5, 0.3, 9, 14, 0.2, 0.3];
-    const avgLegit = data?.dataset_averages?.legitimate ||
-      [44, 14, 2, 0, 0, 3, 2, 1.0, 0.0];
+        const featNames = data?.feature_names || [
+          "URL Length", "Domain Length", "Num Dots", "Num Hyphens",
+          "Num @", "Num Slashes", "Num Digits", "Has HTTPS", "Has IP",
+        ];
+        const avgPhish = data?.dataset_averages?.phishing ||
+          [130, 38, 7, 5, 0.3, 9, 14, 0.2, 0.3];
+        const avgLegit = data?.dataset_averages?.legitimate ||
+          [44, 14, 2, 0, 0, 3, 2, 1.0, 0.0];
 
-    buildGroupedBar("feature-dist-chart", featNames, avgPhish, avgLegit);
-    renderTrainingConfMatrix(data);
+        buildGroupedBar("feature-dist-chart", featNames, avgPhish, avgLegit);
+        renderTrainingConfMatrix(data);
 
-    if (!data?.available) {
-      ["algo-acc-chart", "feat-imp-chart", "radar-chart"].forEach(id => {
-        const wrap = document.getElementById(id)?.closest(".chart-wrap");
-        if (wrap) wrap.style.display = "none";
-      });
-      document.getElementById("viz-no-data").style.display = "block";
-      document.getElementById("viz-no-fi").style.display   = "block";
-      document.getElementById("viz-no-radar").style.display = "block";
-    } else {
-      const names    = Object.keys(data.metrics);
-      const accVals  = names.map(n => data.metrics[n].accuracy);
-      const precVals = names.map(n => data.metrics[n].precision);
-      const recVals  = names.map(n => data.metrics[n].recall);
-      const f1Vals   = names.map(n => data.metrics[n].f1_score);
+        if (!data?.available) {
+          ["algo-acc-chart", "feat-imp-chart", "radar-chart"].forEach(id => {
+            const wrap = document.getElementById(id)?.closest(".chart-wrap");
+            if (wrap) wrap.style.display = "none";
+          });
+          document.getElementById("viz-no-data").style.display = "block";
+          document.getElementById("viz-no-fi").style.display = "block";
+          document.getElementById("viz-no-radar").style.display = "block";
+        } else {
+          const names = Object.keys(data.metrics);
+          const accVals = names.map(n => data.metrics[n].accuracy);
+          const precVals = names.map(n => data.metrics[n].precision);
+          const recVals = names.map(n => data.metrics[n].recall);
+          const f1Vals = names.map(n => data.metrics[n].f1_score);
 
-      buildAlgoAccChart("algo-acc-chart", names, accVals);
+          buildAlgoAccChart("algo-acc-chart", names, accVals);
 
-      const fiSource = data.feature_importances["Random Forest"]
-                    || data.feature_importances["Decision Tree"];
-      if (fiSource) {
-        buildFeatImpChart("feat-imp-chart", featNames, fiSource);
-      } else {
-        const wrap = document.getElementById("feat-imp-chart")?.closest(".chart-wrap");
-        if (wrap) wrap.style.display = "none";
-        document.getElementById("viz-no-fi").style.display = "block";
+          const fiSource = data.feature_importances["Random Forest"]
+            || data.feature_importances["Decision Tree"];
+          if (fiSource) {
+            buildFeatImpChart("feat-imp-chart", featNames, fiSource);
+          } else {
+            const wrap = document.getElementById("feat-imp-chart")?.closest(".chart-wrap");
+            if (wrap) wrap.style.display = "none";
+            document.getElementById("viz-no-fi").style.display = "block";
+          }
+
+          buildRadarChart("radar-chart", names, accVals, precVals, recVals, f1Vals);
+        }
       }
 
-      buildRadarChart("radar-chart", names, accVals, precVals, recVals, f1Vals);
+      await refreshSessionDistChart();
     }
-  }
 
-  await refreshSessionDistChart();
-}
+    function renderTrainingConfMatrix(data) {
+      const grid = document.getElementById("cm-grid");
+      const note = document.getElementById("cm-note");
+      const unavailable = document.getElementById("cm-unavailable");
 
-function renderTrainingConfMatrix(data) {
-  const grid = document.getElementById("cm-grid");
-  const note = document.getElementById("cm-note");
-  const unavailable = document.getElementById("cm-unavailable");
+      if (!data?.available || !data.metrics) {
+        if (unavailable) unavailable.style.display = "block";
+        return;
+      }
 
-  if (!data?.available || !data.metrics) {
-    if (unavailable) unavailable.style.display = "block";
-    return;
-  }
+      const modelName = data.production_model || "Gradient Boosting";
+      const metrics = data.metrics[modelName]
+        || data.metrics["Random Forest"]
+        || Object.values(data.metrics)[0];
+      const cm = metrics?.confusion_matrix;
 
-  const modelName = data.production_model || "Gradient Boosting";
-  const metrics   = data.metrics[modelName]
-                 || data.metrics["Random Forest"]
-                 || Object.values(data.metrics)[0];
-  const cm = metrics?.confusion_matrix;
+      if (!cm) {
+        if (unavailable) unavailable.style.display = "block";
+        return;
+      }
 
-  if (!cm) {
-    if (unavailable) unavailable.style.display = "block";
-    return;
-  }
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      set("cm-tp", cm[0][0]);
+      set("cm-fn", cm[0][1]);
+      set("cm-fp", cm[1][0]);
+      set("cm-tn", cm[1][1]);
 
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set("cm-tp", cm[0][0]);
-  set("cm-fn", cm[0][1]);
-  set("cm-fp", cm[1][0]);
-  set("cm-tn", cm[1][1]);
-
-  if (grid) grid.style.display = "grid";
-  if (note) note.textContent = `Test-set evaluation — ${modelName} (20% holdout)`;
-  if (unavailable) unavailable.style.display = "none";
-}
-
-async function refreshSessionDistChart() {
-  let phishing = 0, safe = 0;
-  try {
-    const r = await fetch(API + "/stats");
-    if (r.ok) {
-      const data = await r.json();
-      phishing = data.phishing || 0;
-      safe     = data.safe || 0;
+      if (grid) grid.style.display = "grid";
+      if (note) note.textContent = `Test-set evaluation — ${modelName} (20% holdout)`;
+      if (unavailable) unavailable.style.display = "none";
     }
-  } catch {
-    phishing = sessionHistory.filter(h => h.prediction === "Phishing").length;
-    safe     = sessionHistory.length - phishing;
-  }
 
-  const chartData = {
-    labels: ["Phishing", "Legitimate"],
-    datasets: [{
-      data: [phishing, safe],
-      backgroundColor: ["#e8556366", "#3ecf8e66"],
-      borderColor: ["#e85563", "#3ecf8e"],
-      borderWidth: 2,
-    }],
-  };
-  const opts = {
-    ...BASE_CHART_OPTS,
-    plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd" } } },
-    cutout: "60%",
-  };
+    async function refreshSessionDistChart() {
+      let phishing = 0, safe = 0;
+      try {
+        const r = await fetch(API + "/stats");
+        if (r.ok) {
+          const data = await r.json();
+          phishing = data.phishing || 0;
+          safe = data.safe || 0;
+        }
+      } catch {
+        phishing = sessionHistory.filter(h => h.prediction === "Phishing").length;
+        safe = sessionHistory.length - phishing;
+      }
 
-  if (!updateChartData("session-dist-chart", chartData)) {
-    createChart("session-dist-chart", { type: "doughnut", data: chartData, options: opts });
-  }
-}
+      const chartData = {
+        labels: ["Phishing", "Legitimate"],
+        datasets: [{
+          data: [phishing, safe],
+          backgroundColor: ["#e8556366", "#3ecf8e66"],
+          borderColor: ["#e85563", "#3ecf8e"],
+          borderWidth: 2,
+        }],
+      };
+      const opts = {
+        ...BASE_CHART_OPTS,
+        plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd" } } },
+        cutout: "60%",
+      };
 
-function buildGroupedBar(canvasId, labels, phishData, legitData) {
-  createChart(canvasId, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        { label: "Phishing (avg)", data: phishData, backgroundColor: "#e8556366", borderColor: "#e85563", borderWidth: 2, borderRadius: 4 },
-        { label: "Legitimate (avg)", data: legitData, backgroundColor: "#3ecf8e66", borderColor: "#3ecf8e", borderWidth: 2, borderRadius: 4 },
-      ],
-    },
-    options: {
-      ...BASE_CHART_OPTS,
-      plugins: { legend: { position: "top", labels: { color: "#8fa3bd", font: { size: 11 } } } },
-      scales: {
-        x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", font: { size: 9 }, maxRotation: 45 } },
-        y: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" } },
-      },
-    },
-  });
-}
+      if (!updateChartData("session-dist-chart", chartData)) {
+        createChart("session-dist-chart", { type: "doughnut", data: chartData, options: opts });
+      }
+    }
 
-function buildAlgoAccChart(canvasId, names, accVals) {
-  const COLORS = ["#1ec9a8", "#4d94ff", "#9b93e8", "#e89b3a", "#3ecf8e", "#e85563"];
-  createChart(canvasId, {
-    type: "bar",
-    data: {
-      labels: names.map(n => n.replace(" ", "\n")),
-      datasets: [{
-        label: "Accuracy (%)",
-        data: accVals,
-        backgroundColor: COLORS.map(c => c + "66"),
-        borderColor: COLORS,
-        borderWidth: 2,
-        borderRadius: 6,
-      }],
-    },
-    options: {
-      indexAxis: "y",
-      ...BASE_CHART_OPTS,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" }, min: 0, max: 100 },
-        y: { grid: { color: "#1e3d5f" }, ticks: { color: "#8fa3bd", font: { size: 11 } } },
-      },
-    },
-  });
-}
-
-function buildFeatImpChart(canvasId, names, importance) {
-  const paired = names.map((n, i) => ({ name: n, imp: importance[i] }))
-                      .sort((a, b) => b.imp - a.imp);
-  createChart(canvasId, {
-    type: "bar",
-    data: {
-      labels: paired.map(p => p.name),
-      datasets: [{
-        label: "Importance",
-        data: paired.map(p => +(p.imp * 100).toFixed(2)),
-        backgroundColor: "#1ec9a844",
-        borderColor: "#1ec9a8",
-        borderWidth: 2,
-        borderRadius: 4,
-      }],
-    },
-    options: {
-      indexAxis: "y",
-      ...BASE_CHART_OPTS,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", callback: v => v + "%" } },
-        y: { grid: { color: "#1e3d5f" }, ticks: { color: "#8fa3bd", font: { size: 11 } } },
-      },
-    },
-  });
-}
-
-function buildRadarChart(canvasId, names, acc, prec, rec, f1) {
-  const COLORS = ["#1ec9a8", "#4d94ff", "#9b93e8", "#e89b3a", "#3ecf8e", "#e85563"];
-  createChart(canvasId, {
-    type: "radar",
-    data: {
-      labels: ["Accuracy", "Precision", "Recall", "F1 Score"],
-      datasets: names.map((name, i) => ({
-        label: name,
-        data: [acc[i], prec[i], rec[i], f1[i]],
-        backgroundColor: COLORS[i % COLORS.length] + "22",
-        borderColor: COLORS[i % COLORS.length],
-        borderWidth: 2,
-        pointRadius: 3,
-      })),
-    },
-    options: {
-      ...BASE_CHART_OPTS,
-      scales: {
-        r: {
-          grid: { color: "#1e3d5f" },
-          angleLines: { color: "#1e3d5f" },
-          pointLabels: { color: "#8fa3bd", font: { size: 11 } },
-          ticks: { display: false },
-          min: 0,
-          max: 100,
+    function buildGroupedBar(canvasId, labels, phishData, legitData) {
+      createChart(canvasId, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            { label: "Phishing (avg)", data: phishData, backgroundColor: "#e8556366", borderColor: "#e85563", borderWidth: 2, borderRadius: 4 },
+            { label: "Legitimate (avg)", data: legitData, backgroundColor: "#3ecf8e66", borderColor: "#3ecf8e", borderWidth: 2, borderRadius: 4 },
+          ],
         },
-      },
-      plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd", font: { size: 10 } } } },
-    },
-  });
-}
+        options: {
+          ...BASE_CHART_OPTS,
+          plugins: { legend: { position: "top", labels: { color: "#8fa3bd", font: { size: 11 } } } },
+          scales: {
+            x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", font: { size: 9 }, maxRotation: 45 } },
+            y: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" } },
+          },
+        },
+      });
+    }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SECTION 7 — RISK ANALYZER
-// ══════════════════════════════════════════════════════════════════════════════
-document.getElementById("risk-url").addEventListener("keydown", e => {
-  if (e.key === "Enter") runRiskScan();
-});
+    function buildAlgoAccChart(canvasId, names, accVals) {
+      const COLORS = ["#1ec9a8", "#4d94ff", "#9b93e8", "#e89b3a", "#3ecf8e", "#e85563"];
+      createChart(canvasId, {
+        type: "bar",
+        data: {
+          labels: names.map(n => n.replace(" ", "\n")),
+          datasets: [{
+            label: "Accuracy (%)",
+            data: accVals,
+            backgroundColor: COLORS.map(c => c + "66"),
+            borderColor: COLORS,
+            borderWidth: 2,
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          ...BASE_CHART_OPTS,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99" }, min: 0, max: 100 },
+            y: { grid: { color: "#1e3d5f" }, ticks: { color: "#8fa3bd", font: { size: 11 } } },
+          },
+        },
+      });
+    }
 
-async function runRiskScan() {
-  const url = document.getElementById("risk-url").value.trim();
-  if (!url) return;
+    function buildFeatImpChart(canvasId, names, importance) {
+      const paired = names.map((n, i) => ({ name: n, imp: importance[i] }))
+        .sort((a, b) => b.imp - a.imp);
+      createChart(canvasId, {
+        type: "bar",
+        data: {
+          labels: paired.map(p => p.name),
+          datasets: [{
+            label: "Importance",
+            data: paired.map(p => +(p.imp * 100).toFixed(2)),
+            backgroundColor: "#1ec9a844",
+            borderColor: "#1ec9a8",
+            borderWidth: 2,
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          ...BASE_CHART_OPTS,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: "#1e3d5f" }, ticks: { color: "#6b7f99", callback: v => v + "%" } },
+            y: { grid: { color: "#1e3d5f" }, ticks: { color: "#8fa3bd", font: { size: 11 } } },
+          },
+        },
+      });
+    }
 
-  const btn  = document.getElementById("risk-btn");
-  const spin = document.getElementById("risk-spinner");
-  const txt  = document.getElementById("risk-btn-text");
-  btn.disabled = true; spin.style.display = "block"; txt.textContent = "ANALYZING…";
+    function buildRadarChart(canvasId, names, acc, prec, rec, f1) {
+      const COLORS = ["#1ec9a8", "#4d94ff", "#9b93e8", "#e89b3a", "#3ecf8e", "#e85563"];
+      createChart(canvasId, {
+        type: "radar",
+        data: {
+          labels: ["Accuracy", "Precision", "Recall", "F1 Score"],
+          datasets: names.map((name, i) => ({
+            label: name,
+            data: [acc[i], prec[i], rec[i], f1[i]],
+            backgroundColor: COLORS[i % COLORS.length] + "22",
+            borderColor: COLORS[i % COLORS.length],
+            borderWidth: 2,
+            pointRadius: 3,
+          })),
+        },
+        options: {
+          ...BASE_CHART_OPTS,
+          scales: {
+            r: {
+              grid: { color: "#1e3d5f" },
+              angleLines: { color: "#1e3d5f" },
+              pointLabels: { color: "#8fa3bd", font: { size: 11 } },
+              ticks: { display: false },
+              min: 0,
+              max: 100,
+            },
+          },
+          plugins: { legend: { position: "bottom", labels: { color: "#8fa3bd", font: { size: 10 } } } },
+        },
+      });
+    }
 
-  try {
-    const r    = await fetch(API + "/predict", {
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({url})
+    // ══════════════════════════════════════════════════════════════════════════════
+    // SECTION 7 — RISK ANALYZER
+    // ══════════════════════════════════════════════════════════════════════════════
+    document.getElementById("risk-url").addEventListener("keydown", e => {
+      if (e.key === "Enter") runRiskScan();
     });
-    const data = await r.json();
-    if (!r.ok) { alert(data.error || "Error"); return; }
 
-    addToSessionHistory(data);
-    renderRiskSection(data);
-  } catch {
-    alert("Cannot connect to server.");
-  } finally {
-    btn.disabled = false; spin.style.display = "none"; txt.textContent = "ANALYZE";
-  }
-}
+    async function runRiskScan() {
+      const url = document.getElementById("risk-url").value.trim();
+      if (!url) return;
 
-function renderRiskSection(data) {
-  const risk   = data.risk;
-  const colorMap = {CRITICAL:"#c0392b",HIGH:"var(--red)",MEDIUM:"var(--yellow)",LOW:"var(--green)"};
-  const col    = colorMap[risk.level];
+      const btn = document.getElementById("risk-btn");
+      const spin = document.getElementById("risk-spinner");
+      const txt = document.getElementById("risk-btn-text");
+      btn.disabled = true; spin.style.display = "block"; txt.textContent = "ANALYZING…";
 
-  document.getElementById("risk-level-big").textContent  = risk.level;
-  document.getElementById("risk-level-big").style.color  = col;
-  document.getElementById("risk-score-display").textContent = `Risk Score: ${risk.score} / 100`;
-  document.getElementById("risk-score-display").style.color = col;
+      try {
+        const r = await fetch(API + "/predict", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url })
+        });
+        const data = await r.json();
+        if (!r.ok) { alert(data.error || "Error"); return; }
 
-  // Needle position
-  const pct  = Math.min(risk.score, 100);
-  document.getElementById("risk-needle").style.left = pct + "%";
+        addToSessionHistory(data);
+        renderRiskSection(data);
+      } catch {
+        alert("Cannot connect to server.");
+      } finally {
+        btn.disabled = false; spin.style.display = "none"; txt.textContent = "ANALYZE";
+      }
+    }
 
-  // Rules
-  const list = document.getElementById("risk-rules-detail");
-  list.innerHTML = "";
-  risk.rules.forEach(r => {
-    const el = document.createElement("div");
-    el.className = "risk-rule " + r.severity;
-    el.innerHTML = `<span>${r.rule}</span><span class="rule-pts">+${r.points} pts</span>`;
-    list.appendChild(el);
-  });
-  if (!risk.rules.length) {
-    list.innerHTML = '<div style="color:var(--green);font-size:.83rem;text-align:center;padding:12px">✓ No suspicious patterns found</div>';
-  }
+    function renderRiskSection(data) {
+      const risk = data.risk;
+      const colorMap = { CRITICAL: "#c0392b", HIGH: "var(--red)", MEDIUM: "var(--yellow)", LOW: "var(--green)" };
+      const col = colorMap[risk.level];
 
-  // ML result
-  const mlPanel = document.getElementById("risk-ml-result");
-  const isP     = data.prediction === "Phishing";
-  document.getElementById("risk-ml-label").textContent = data.prediction;
-  document.getElementById("risk-ml-label").style.color = isP ? "var(--red)" : "var(--green)";
-  document.getElementById("risk-ml-conf").textContent  = data.confidence.toFixed(1) + "% confidence";
-  mlPanel.style.display = "block";
+      document.getElementById("risk-level-big").textContent = risk.level;
+      document.getElementById("risk-level-big").style.color = col;
+      document.getElementById("risk-score-display").textContent = `Risk Score: ${risk.score} / 100`;
+      document.getElementById("risk-score-display").style.color = col;
 
-  document.getElementById("risk-result-card").style.display = "block";
-}
+      // Needle position
+      const pct = Math.min(risk.score, 100);
+      document.getElementById("risk-needle").style.left = pct + "%";
 
-// ══════════════════════════════════════════════════════════════════════════════
-// UTILITIES
-// ══════════════════════════════════════════════════════════════════════════════
-async function fetchVizData() {
-  if (vizData !== null) return vizData;
-  try {
-    const r = await fetch(API + "/viz-data");
-    vizData = await r.json();
-  } catch {
-    vizData = {available: false};
-  }
-  return vizData;
-}
+      // Rules
+      const list = document.getElementById("risk-rules-detail");
+      list.innerHTML = "";
+      risk.rules.forEach(r => {
+        const el = document.createElement("div");
+        el.className = "risk-rule " + r.severity;
+        el.innerHTML = `<span>${r.rule}</span><span class="rule-pts">+${r.points} pts</span>`;
+        list.appendChild(el);
+      });
+      if (!risk.rules.length) {
+        list.innerHTML = '<div style="color:var(--green);font-size:.83rem;text-align:center;padding:12px">✓ No suspicious patterns found</div>';
+      }
 
-function downloadCSV(rows, filename) {
-  const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], {type:"text/csv"});
-  const a    = document.createElement("a");
-  a.href     = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-}
-</script>
+      // ML result
+      const mlPanel = document.getElementById("risk-ml-result");
+      const isP = data.prediction === "Phishing";
+      document.getElementById("risk-ml-label").textContent = data.prediction;
+      document.getElementById("risk-ml-label").style.color = isP ? "var(--red)" : "var(--green)";
+      document.getElementById("risk-ml-conf").textContent = data.confidence.toFixed(1) + "% confidence";
+      mlPanel.style.display = "block";
+
+      document.getElementById("risk-result-card").style.display = "block";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ══════════════════════════════════════════════════════════════════════════════
+    async function fetchVizData() {
+      if (vizData !== null) return vizData;
+      try {
+        const r = await fetch(API + "/viz-data");
+        vizData = await r.json();
+      } catch {
+        vizData = { available: false };
+      }
+      return vizData;
+    }
+
+    function downloadCSV(rows, filename) {
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+  </script>
 </body>
+
 </html>

@@ -51,43 +51,42 @@ except ImportError:
 #   3: num_hyphens     4: num_at_symbols  5: num_slashes
 #   6: num_digits      7: has_https       8: has_ip
 # Labels: 0 = Phishing, 1 = Legitimate
+# Labels: 1 = Phishing, 0 = Legitimate
 
 np.random.seed(42)
 N = 1500    # samples per class
 
 
 def make_phishing(n: int) -> np.ndarray:
-    """Synthetic phishing URLs — long, no HTTPS, lots of dots/digits, IP use."""
-    return np.column_stack([
-        np.random.randint(80,  200, n),                          # url_length
-        np.random.randint(20,  60,  n),                          # domain_length
-        np.random.randint(4,   10,  n),                          # num_dots
-        np.random.randint(2,   8,   n),                          # num_hyphens
-        np.random.choice([0, 1], n, p=[0.65, 0.35]),             # num_at (35% have @)
-        np.random.randint(5,   12,  n),                          # num_slashes
-        np.random.randint(8,   22,  n),                          # num_digits
-        np.random.choice([0, 1], n, p=[0.80, 0.20]),             # has_https (mostly 0)
-        np.random.choice([0, 1], n, p=[0.68, 0.32]),             # has_ip (32% use IP)
-    ]).astype(float)
+    """Synthetic phishing URLs matching real dataset statistics."""
+    url_len = np.clip(np.random.normal(70.24, 72.47, n), 14, 400)
+    dom_len = np.clip(np.random.normal(20.26, 18.67, n), 3, 150)
+    dots = np.clip(np.random.poisson(2.75 - 1.0, n) + 1, 0, 15)
+    hyphens = np.clip(np.random.poisson(0.63, n), 0, 10)
+    at_sym = np.random.choice([0, 1], n, p=[0.988, 0.012])
+    slashes = np.clip(np.random.poisson(4.71 - 1.0, n) + 1, 1, 12)
+    digits = np.clip(np.random.normal(8.63, 18.89, n), 0, 100)
+    https = np.random.choice([0, 1], n, p=[0.65, 0.35]) # 35% HTTPS
+    ip = np.random.choice([0, 1], n, p=[0.947, 0.053]) # 5.3% IP
+    return np.column_stack([url_len, dom_len, dots, hyphens, at_sym, slashes, digits, https, ip]).astype(float)
 
 
 def make_legitimate(n: int) -> np.ndarray:
-    """Synthetic legitimate URLs — short, HTTPS, clean structure."""
-    return np.column_stack([
-        np.random.randint(15,  80,  n),                          # url_length
-        np.random.randint(5,   25,  n),                          # domain_length
-        np.random.randint(1,   4,   n),                          # num_dots
-        np.random.randint(0,   2,   n),                          # num_hyphens
-        np.zeros(n, dtype=int),                                  # num_at (never)
-        np.random.randint(1,   5,   n),                          # num_slashes
-        np.random.randint(0,   5,   n),                          # num_digits
-        np.ones(n, dtype=int),                                   # has_https (always)
-        np.zeros(n, dtype=int),                                  # has_ip (never)
-    ]).astype(float)
+    """Synthetic legitimate URLs matching real dataset statistics."""
+    url_len = np.clip(np.random.normal(52.79, 23.69, n), 14, 200)
+    dom_len = np.clip(np.random.normal(15.81, 5.57, n), 4, 50)
+    dots = np.clip(np.random.poisson(1.77 - 1.0, n) + 1, 0, 8)
+    hyphens = np.clip(np.random.poisson(1.34, n), 0, 15)
+    at_sym = np.random.choice([0, 1], n, p=[0.9993, 0.0007])
+    slashes = np.clip(np.random.poisson(4.36 - 1.0, n) + 1, 1, 10)
+    digits = np.clip(np.random.normal(3.10, 4.51, n), 0, 40)
+    https = np.random.choice([0, 1], n, p=[0.08, 0.92]) # 92% HTTPS
+    ip = np.random.choice([0, 1], n, p=[0.999, 0.001])
+    return np.column_stack([url_len, dom_len, dots, hyphens, at_sym, slashes, digits, https, ip]).astype(float)
 
 
 X = np.vstack([make_phishing(N), make_legitimate(N)])
-y = np.array([0] * N + [1] * N)     # 0=Phishing, 1=Legitimate
+y = np.array([1] * N + [0] * N)     # 1=Phishing, 0=Legitimate
 
 # Train / test split (80% / 20%), stratified to keep class balance
 X_train, X_test, y_train, y_test = train_test_split(
@@ -157,11 +156,11 @@ FEATURE_NAMES        = [
 ]
 
 print("=" * 55)
-print("  SafeWeb — Training 6 Classification Algorithms")
+print("  SafeWeb - Training 6 Classification Algorithms")
 print("=" * 55)
 
 for name, slug, clf in classifiers:
-    print(f"\n▶  Training: {name}")
+    print(f"\n>>> Training: {name}")
 
     # ── Train ──────────────────────────────────────────────────────────────
     clf.fit(X_train_s, y_train)
@@ -202,8 +201,8 @@ for name, slug, clf in classifiers:
 
     print(f"   Accuracy : {acc*100:.1f}%   Precision: {prec*100:.1f}%")
     print(f"   Recall   : {rec*100:.1f}%   F1-Score : {f1*100:.1f}%")
-    print(f"   CV Acc   : {cv_mean*100:.1f}% ± {cv_std*100:.1f}%")
-    print(f"   Saved →  {out_path}")
+    print(f"   CV Acc   : {cv_mean*100:.1f}% +/- {cv_std*100:.1f}%")
+    print(f"   Saved ->  {out_path}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -234,6 +233,6 @@ with open("model_metrics.json", "w") as f:
     json.dump(output, f, indent=2)
 
 print("\n" + "=" * 55)
-print("[SAVED] model_metrics.json — dashboard visualization data")
-print("\n✅  All done! Start the server with:  python app.py")
+print("[SAVED] model_metrics.json - dashboard visualization data")
+print("\n[OK] All done! Start the server with:  python app.py")
 print("=" * 55 + "\n")

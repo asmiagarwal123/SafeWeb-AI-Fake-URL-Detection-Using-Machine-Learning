@@ -137,18 +137,25 @@ def extract_features(url: str) -> list:
       8. has_https        — 1 if HTTPS, else 0
       9. has_ip           — 1 if hostname is an IPv4 address
     """
+    # Prepend http:// if URL doesn't have scheme (matches SafeWeb-code.ipynb feature training)
+    url_lower = url.lower()
+    if not (url_lower.startswith("http://") or url_lower.startswith("https://")):
+        url = "http://" + url
+
     parsed = urlparse(url)
     hostname = parsed.hostname or ""
+    domain = parsed.netloc
+
     return [
         len(url),
-        len(parsed.netloc),
+        len(domain),
         url.count("."),
         url.count("-"),
         url.count("@"),
         url.count("/"),
         sum(c.isdigit() for c in url),
         1 if parsed.scheme.lower() == "https" else 0,
-        1 if _IP_PATTERN.match(hostname) else 0,
+        1 if _IP_PATTERN.match(hostname or domain) else 0,
     ]
 
 
@@ -259,10 +266,10 @@ def predict():
     probas  = model.predict_proba(scaled)[0]
 
     if int(pred) == 0:
-        label = "Phishing"
+        label = "Legitimate"
         conf  = float(probas[0]) * 100
     else:
-        label = "Legitimate"
+        label = "Phishing"
         conf  = float(probas[1]) * 100
 
     risk = compute_risk_score(features)
@@ -278,59 +285,7 @@ def predict():
     })
 
 
-# ── 2. Batch scan ─────────────────────────────────────────────────────────────
-@app.route("/batch", methods=["POST"])
-def batch_predict():
-    """
-    POST {"urls": ["https://a.com", "http://b.com", ...]}
-    Returns a list of predictions (same format as /predict).
-    """
-    data = request.get_json(force=True, silent=True)
-    urls = data.get("urls", []) if data else []
-
-    if not urls or not isinstance(urls, list):
-        return jsonify({"error": "Provide a list under 'urls'"}), 400
-
-    results = []
-    for url in urls[:50]:           # hard cap at 50
-        url = str(url).strip()
-        if not url:
-            continue
-        try:
-            features = extract_features(url)
-            arr    = np.array(features).reshape(1, -1)
-            scaled = scaler.transform(arr)
-            pred   = model.predict(scaled)[0]
-            probas = model.predict_proba(scaled)[0]
-
-            if int(pred) == 0:
-                label = "Phishing"; conf = float(probas[0]) * 100
-            else:
-                label = "Legitimate"; conf = float(probas[1]) * 100
-
-            risk = compute_risk_score(features)
-            record_stat(url, label, round(conf, 2), risk["level"])
-
-            results.append({
-                "url":        url,
-                "prediction": label,
-                "confidence": round(conf, 2),
-                "risk_score": risk["score"],
-                "risk_level": risk["level"],
-            })
-        except Exception as e:
-            results.append({"url": url, "error": str(e)})
-
-    phishing_count = sum(1 for r in results if r.get("prediction") == "Phishing")
-    return jsonify({
-        "results":        results,
-        "total":          len(results),
-        "phishing_found": phishing_count,
-        "safe_found":     len(results) - phishing_count,
-    })
-
-
-# ── 3. Compare all trained models ─────────────────────────────────────────────
+# ── 2. Compare all trained models ─────────────────────────────────────────────
 @app.route("/compare", methods=["POST"])
 def compare_models():
     """
@@ -351,7 +306,7 @@ def compare_models():
     scaled    = scaler.transform(arr)
     prod_pred = model.predict(scaled)[0]
     prod_prob = model.predict_proba(scaled)[0]
-    prod_lbl  = "Phishing" if int(prod_pred) == 0 else "Legitimate"
+    prod_lbl  = "Legitimate" if int(prod_pred) == 0 else "Phishing"
     prod_conf = float(prod_prob[0] if int(prod_pred) == 0 else prod_prob[1]) * 100
     comparison["Production Model"] = {
         "prediction": prod_lbl,
@@ -369,7 +324,7 @@ def compare_models():
             try:
                 p     = clf.predict(arr_s)[0]
                 proba = clf.predict_proba(arr_s)[0]
-                lbl   = "Phishing" if int(p) == 0 else "Legitimate"
+                lbl   = "Legitimate" if int(p) == 0 else "Phishing"
                 conf  = float(proba[0] if int(p) == 0 else proba[1]) * 100
                 comparison[name] = {"prediction": lbl, "confidence": round(conf, 2)}
             except Exception as e:
