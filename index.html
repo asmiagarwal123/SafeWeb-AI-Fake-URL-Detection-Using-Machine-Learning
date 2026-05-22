@@ -1321,7 +1321,9 @@
       <div class="logo-icon">🛡️</div>
       <div>
         <div class="logo-text">SafeWeb</div>
-        <div class="logo-sub">v2.0 · ML SUITE</div>
+        <div class="logo-sub">URL scanner
+          
+        </div>
       </div>
     </div>
 
@@ -1656,43 +1658,9 @@
           <div class="chart-wrap"><canvas id="feat-imp-chart"></canvas></div>
         </div>
         <div class="viz-card">
-          <div class="viz-title">🔷 Metrics Radar — All Algorithms</div>
-          <div id="viz-no-radar" class="no-data-msg" style="display:none">
-            Run <code>python train_all_models.py</code> to see metrics radar
-          </div>
-          <div class="chart-wrap"><canvas id="radar-chart"></canvas></div>
+          <div class="viz-title">� Session Prediction Distribution</div>
+          <div class="chart-wrap"><canvas id="session-dist-chart"></canvas></div>
         </div>
-        <div class="viz-card">
-          <div class="viz-title">⬜ Confusion Matrix — Production Model</div>
-          <div id="cm-display" style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;gap:10px">
-            <div id="cm-note" class="cm-note">Test-set evaluation from trained model metrics</div>
-            <div id="cm-grid" style="display:none;gap:4px">
-              <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:4px;text-align:center">
-                <div></div>
-                <div style="font-size:.72rem;color:var(--muted);padding:4px">Predicted<br>Phishing</div>
-                <div style="font-size:.72rem;color:var(--muted);padding:4px">Predicted<br>Legit</div>
-                <div style="font-size:.72rem;color:var(--muted);padding:4px;text-align:right">Actual<br>Phishing</div>
-                <div class="cm-cell" id="cm-tp"
-                  style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--green)">
-                  0</div>
-                <div class="cm-cell" id="cm-fn"
-                  style="background:var(--red-dim);border:1px solid var(--red);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--red)">
-                  0</div>
-                <div style="font-size:.72rem;color:var(--muted);padding:4px;text-align:right">Actual<br>Legit</div>
-                <div class="cm-cell" id="cm-fp"
-                  style="background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--yellow)">
-                  0</div>
-                <div class="cm-cell" id="cm-tn"
-                  style="background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:14px;font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--green)">
-                  0</div>
-              </div>
-            </div>
-            <div id="cm-unavailable" class="no-data-msg" style="display:none;padding:20px">
-              Run <code>python train_all_models.py</code> to load test-set confusion matrix
-            </div>
-          </div>
-        </div>
-        <div class="viz-card">
           <div class="viz-title">📉 Session Prediction Distribution</div>
           <div class="chart-wrap"><canvas id="session-dist-chart"></canvas></div>
         </div>
@@ -2054,15 +2022,29 @@
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url })
         });
         const data = await r.json();
-        if (!data.available || data.error) return;
-
         const panel = document.getElementById("whois-panel");
         const content = document.getElementById("whois-content");
+
+        // If WHOIS feature is not available (python-whois not installed)
+        if (!data.available) {
+          content.innerHTML = `<div style="padding:12px;background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:6px;font-size:.83rem;color:var(--yellow)">ℹ️ Domain information not available. Install: <code style="background:var(--panel);padding:1px 6px;border-radius:4px">pip install python-whois</code></div>`;
+          panel.style.display = "block";
+          return;
+        }
+
+        // If there's an error during lookup
+        if (data.error) {
+          content.innerHTML = `<div style="padding:12px;background:var(--red-dim);border:1px solid var(--red);border-radius:6px;font-size:.83rem;color:var(--red)">⚠️ Could not retrieve domain info: ${data.error}</div>`;
+          panel.style.display = "block";
+          return;
+        }
+
+        // Success: display WHOIS information
         content.innerHTML = `
       <div class="whois-grid">
         <div class="whois-item">
           <div class="whois-k">Domain</div>
-          <div class="whois-v">${data.domain}</div>
+          <div class="whois-v">${data.domain || "Unknown"}</div>
         </div>
         <div class="whois-item">
           <div class="whois-k">Created</div>
@@ -2070,17 +2052,27 @@
         </div>
         <div class="whois-item">
           <div class="whois-k">Age (days)</div>
-          <div class="whois-v" style="color:${data.suspicious ? "var(--red)" : "var(--green)"}">${data.age_days ?? "Unknown"} ${data.suspicious ? "⚠️" : ""}</div>
+          <div class="whois-v" style="color:${data.suspicious ? "var(--red)" : "var(--green)"}">${data.age_days !== null && data.age_days !== undefined ? data.age_days : "Unknown"} ${data.suspicious ? "⚠️" : ""}</div>
         </div>
         <div class="whois-item">
           <div class="whois-k">Registrar</div>
-          <div class="whois-v">${data.registrar}</div>
+          <div class="whois-v">${data.registrar || "Unknown"}</div>
+        </div>
+        <div class="whois-item">
+          <div class="whois-k">Country</div>
+          <div class="whois-v">${data.country || "Unknown"}</div>
         </div>
       </div>
       ${data.suspicious ? `<div style="margin-top:10px;padding:8px 12px;background:var(--red-dim);border:1px solid var(--red);border-radius:6px;font-size:.8rem;color:var(--red)">🚨 ${data.note}</div>` : ""}
     `;
         panel.style.display = "block";
-      } catch { /* WHOIS is optional */ }
+      } catch (err) {
+        // Network or parsing error
+        const panel = document.getElementById("whois-panel");
+        const content = document.getElementById("whois-content");
+        content.innerHTML = `<div style="padding:12px;background:var(--red-dim);border:1px solid var(--red);border-radius:6px;font-size:.83rem;color:var(--red)">⚠️ Network error retrieving domain info</div>`;
+        panel.style.display = "block";
+      }
     }
 
     function resetDash() {
@@ -2309,7 +2301,7 @@
       };
       Object.entries(data.metrics).forEach(([name, m]) => {
         const elId = slugMap[name];
-        if (elId) document.getElementById(elId).textContent = m.accuracy + "% accuracy";
+        if (elId) document.getElementById(elId).textContent = "";
       });
     }
 
@@ -2400,13 +2392,12 @@
         renderTrainingConfMatrix(data);
 
         if (!data?.available) {
-          ["algo-acc-chart", "feat-imp-chart", "radar-chart"].forEach(id => {
+          ["algo-acc-chart", "feat-imp-chart"].forEach(id => {
             const wrap = document.getElementById(id)?.closest(".chart-wrap");
             if (wrap) wrap.style.display = "none";
           });
           document.getElementById("viz-no-data").style.display = "block";
           document.getElementById("viz-no-fi").style.display = "block";
-          document.getElementById("viz-no-radar").style.display = "block";
         } else {
           const names = Object.keys(data.metrics);
           const accVals = names.map(n => data.metrics[n].accuracy);
@@ -2425,8 +2416,6 @@
             if (wrap) wrap.style.display = "none";
             document.getElementById("viz-no-fi").style.display = "block";
           }
-
-          buildRadarChart("radar-chart", names, accVals, precVals, recVals, f1Vals);
         }
       }
 

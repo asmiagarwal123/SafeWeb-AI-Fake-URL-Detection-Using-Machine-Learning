@@ -460,8 +460,25 @@ def whois_lookup():
         if isinstance(created, list):
             created = created[0]
 
-        age_days   = (datetime.datetime.now() - created).days if created else None
-        suspicious = age_days is not None and age_days < 30
+        age_days   = None
+        suspicious = False
+
+        # Handle timezone-aware vs naive datetime comparison
+        if created:
+            try:
+                # If created is timezone-aware, convert to naive (UTC)
+                if created.tzinfo is not None:
+                    created_naive = created.replace(tzinfo=None)
+                else:
+                    created_naive = created
+                
+                # Get current time as naive datetime
+                now = datetime.datetime.now()
+                age_days = (now - created_naive).days
+                suspicious = age_days < 30
+            except Exception:
+                # If datetime calculation fails, just skip age calculation
+                age_days = None
 
         return jsonify({
             "available":   True,
